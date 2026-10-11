@@ -45,6 +45,28 @@ npx tsx scripts/import-questions.ts --area a1 --file data/raw/a1.json --version 
 > ⚠️ Параметры экзамена в тестовом банке (20 вопросов, 20 минут, порог 18) — заглушки. Перед запуском
 > сверьте их с актуальным регламентом ЕПТ по каждой области (SPEC.md, раздел 13) и передайте в `area.exam`.
 
+### Загрузка банка на работающий сайт
+
+База на проде наружу не открыта, поэтому банк загружается через защищённый эндпоинт. Он использует ту же логику,
+что и скрипт (`lib/import-db.ts`). Нужна переменная `IMPORT_TOKEN`; без неё эндпоинт отвечает 404.
+
+```bash
+T=<IMPORT_TOKEN>; URL=https://prombez-game.ru/api/admin/import
+
+# 1. проверка без записи
+curl -X POST "$URL?area=a1&dryRun=1" -H "Authorization: Bearer $T" --data-binary @data/raw/a1.json
+# 2. загрузка (область остаётся скрытой, пока не передан publish=1)
+curl -X POST "$URL?area=a1&version=47-рп" -H "Authorization: Bearer $T" --data-binary @data/raw/a1.json
+# 3. состояние областей, включая скрытые
+curl "$URL" -H "Authorization: Bearer $T"
+# 4. публикация (повторная загрузка того же файла с publish=1 идемпотентна)
+curl -X POST "$URL?area=a1&publish=1" -H "Authorization: Bearer $T" --data-binary @data/raw/a1.json
+```
+
+Коды ответов: 401 неверный токен, 400 плохие параметры или JSON, 422 файл не прошёл проверку (список ошибок с
+номерами вопросов), 409 код области уже занят другим slug, 413 тело больше 5 МБ. После записи кэш страниц
+сбрасывается сам.
+
 ## Деплой (Dokploy)
 
 1. Приложение типа Dockerfile из этого репозитория, порт 3000, домен `prombez-game.ru` (Traefik выпустит сертификат).
