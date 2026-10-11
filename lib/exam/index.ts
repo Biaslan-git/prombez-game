@@ -31,6 +31,17 @@ export function shuffle<T>(items: readonly T[], rng: Rng = Math.random): T[] {
   return a;
 }
 
+/** Варианты вроде «Все перечисленное» или «Ни один из перечисленных» ссылаются на остальные и должны идти последними. */
+const PINNED_LAST =
+  /^(вс(е|еми|ей|ех)|ни один|ничего|никакие)\s+(из\s+)?(перечисленн|вышеперечисленн|указанн|приведенн)/i;
+
+/** Перемешивает варианты ответа; «Все перечисленное» и подобные остаются в конце. */
+export function shuffleAnswers<A extends { text: string }>(answers: readonly A[], rng: Rng = Math.random): A[] {
+  const pinned = answers.filter((a) => PINNED_LAST.test(a.text.trim()));
+  const free = answers.filter((a) => !PINNED_LAST.test(a.text.trim()));
+  return [...shuffle(free, rng), ...pinned];
+}
+
 /** Детерминированный ГПСЧ (mulberry32) — для тестов и воспроизводимых билетов. */
 export function seededRng(seed: number): Rng {
   let t = seed >>> 0;
@@ -54,7 +65,7 @@ export function generateTicket<Q extends ExamQuestion>(
   const count = Math.max(0, Math.min(opts.count, pool.length));
   const picked = shuffle(pool, rng)
     .slice(0, count)
-    .map((q) => ({ ...q, answers: shuffle(q.answers, rng) }));
+    .map((q) => ({ ...q, answers: shuffleAnswers(q.answers, rng) }));
   const threshold =
     count < opts.count && opts.count > 0 ? Math.ceil((opts.passThreshold / opts.count) * count) : opts.passThreshold;
   return {

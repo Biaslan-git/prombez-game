@@ -7,6 +7,7 @@ import {
   scoreExam,
   seededRng,
   shuffle,
+  shuffleAnswers,
   type ExamQuestion,
 } from "./index";
 
@@ -111,5 +112,56 @@ describe("timer", () => {
     expect(formatClock(90_000)).toBe("01:30");
     expect(formatClock(1)).toBe("00:01");
     expect(formatClock(0)).toBe("00:00");
+  });
+});
+
+describe("shuffleAnswers", () => {
+  const opts = (texts: string[]) => texts.map((text, i) => ({ id: i + 1, text, isCorrect: i === 0 }));
+
+  it("keeps the same answers with their correctness flags", () => {
+    const src = opts(["а", "б", "в", "г"]);
+    const out = shuffleAnswers(src, seededRng(5));
+    expect(out.map((a) => a.id).sort()).toEqual([1, 2, 3, 4]);
+    expect(out.find((a) => a.id === 1)!.isCorrect).toBe(true);
+    expect(src.map((a) => a.id)).toEqual([1, 2, 3, 4]); // исходный массив не меняется
+  });
+
+  it("is deterministic with a seeded rng", () => {
+    const src = opts(["а", "б", "в", "г"]);
+    expect(shuffleAnswers(src, seededRng(9))).toEqual(shuffleAnswers(src, seededRng(9)));
+  });
+
+  it("keeps «all of the above» style options last", () => {
+    for (const tail of [
+      "Все перечисленное.",
+      "Все перечисленные варианты",
+      "Ни один из перечисленных",
+      "Ничего из перечисленного",
+    ]) {
+      for (let seed = 1; seed <= 20; seed++) {
+        const out = shuffleAnswers(opts(["а", "б", tail, "г"]), seededRng(seed));
+        expect(out[out.length - 1]!.text).toBe(tail);
+      }
+    }
+  });
+
+  it("does not pin ordinary answers that merely start with «все»", () => {
+    const seen = new Set<number>();
+    for (let seed = 1; seed <= 60; seed++) {
+      const out = shuffleAnswers(opts(["Все организации независимо от формы", "б", "в", "г"]), seededRng(seed));
+      seen.add(out.findIndex((a) => a.id === 1));
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it("spreads the correct answer evenly over positions", () => {
+    const counts = [0, 0, 0, 0];
+    const rng = seededRng(2026);
+    for (let i = 0; i < 2000; i++)
+      counts[shuffleAnswers(opts(["а", "б", "в", "г"]), rng).findIndex((a) => a.isCorrect)]!++;
+    for (const c of counts) {
+      expect(c / 2000).toBeGreaterThan(0.2);
+      expect(c / 2000).toBeLessThan(0.3);
+    }
   });
 });

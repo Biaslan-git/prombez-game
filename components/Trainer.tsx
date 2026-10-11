@@ -8,7 +8,7 @@ import { ReadinessBar } from "@/components/Readiness";
 import { useAreaProgress } from "@/components/useAreaProgress";
 import { useAnswerHotkeys } from "@/components/useHotkeys";
 import type { ClientQuestion } from "@/lib/data";
-import { isAnswerCorrect } from "@/lib/exam";
+import { isAnswerCorrect, shuffleAnswers } from "@/lib/exam";
 import { reachGoal } from "@/lib/metrika";
 import {
   areaStats,
@@ -78,7 +78,14 @@ export function Trainer({ area, questions, mode = "all" }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress, current, finished]);
 
-  const question = current ? byId.get(current.id) : undefined;
+  const baseQuestion = current ? byId.get(current.id) : undefined;
+  // Порядок вариантов случайный при каждом показе, чтобы запоминалось содержание, а не позиция ответа.
+  const question = useMemo(
+    () => (baseQuestion ? { ...baseQuestion, answers: shuffleAnswers(baseQuestion.answers) } : undefined),
+    // current — новый объект при каждом выборе вопроса, поэтому повтор того же вопроса перемешивается заново.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [baseQuestion, current],
+  );
 
   function submit(ids: number[]) {
     if (!question || revealed || ids.length === 0) return;
