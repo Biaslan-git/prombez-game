@@ -70,7 +70,12 @@ export function parseAreaProgress(v: unknown): AreaProgress {
     base.exams = o.exams
       .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
       .filter((e) => isNum(e.at) && isNum(e.correct) && isNum(e.total))
-      .map((e) => ({ at: e.at as number, correct: e.correct as number, total: e.total as number, passed: e.passed === true }));
+      .map((e) => ({
+        at: e.at as number,
+        correct: e.correct as number,
+        total: e.total as number,
+        passed: e.passed === true,
+      }));
   }
   const s = o.streak as Record<string, unknown> | undefined;
   if (s && typeof s.lastDay === "string" && isNum(s.days)) base.streak = { lastDay: s.lastDay, days: s.days };

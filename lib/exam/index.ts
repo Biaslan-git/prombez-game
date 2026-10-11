@@ -1,8 +1,8 @@
 export type ExamAnswer = { id: number; text: string; isCorrect: boolean };
 export type ExamQuestion = { id: number; number: number; text: string; answers: ExamAnswer[] };
 
-export type Ticket = {
-  questions: ExamQuestion[];
+export type Ticket<Q extends ExamQuestion = ExamQuestion> = {
+  questions: Q[];
   startedAt: number;
   timeLimitMs: number;
   passThreshold: number;
@@ -11,13 +11,13 @@ export type Ticket = {
 /** Ответы пользователя: questionId → выбранные answerId. */
 export type Responses = Record<number, number[]>;
 
-export type ExamMistake = { question: ExamQuestion; selected: number[] };
-export type ExamResult = {
+export type ExamMistake<Q extends ExamQuestion = ExamQuestion> = { question: Q; selected: number[] };
+export type ExamResult<Q extends ExamQuestion = ExamQuestion> = {
   correct: number;
   total: number;
   passed: boolean;
   perQuestion: { questionId: number; correct: boolean }[];
-  mistakes: ExamMistake[];
+  mistakes: ExamMistake<Q>[];
 };
 
 export type Rng = () => number;
@@ -46,11 +46,11 @@ export function seededRng(seed: number): Rng {
  * Билет: случайные `count` вопросов области (или все, если их меньше), порядок ответов перемешан.
  * Порог сдачи масштабируется, если вопросов в банке меньше, чем в регламенте.
  */
-export function generateTicket(
-  pool: readonly ExamQuestion[],
+export function generateTicket<Q extends ExamQuestion>(
+  pool: readonly Q[],
   opts: { count: number; timeLimitMin: number; passThreshold: number; now: number },
   rng: Rng = Math.random,
-): Ticket {
+): Ticket<Q> {
   const count = Math.max(0, Math.min(opts.count, pool.length));
   const picked = shuffle(pool, rng)
     .slice(0, count)
@@ -72,7 +72,7 @@ export function isAnswerCorrect(q: ExamQuestion, selected: readonly number[] | u
   return chosen.size === correct.length && correct.every((id) => chosen.has(id));
 }
 
-export function scoreExam(ticket: Ticket, responses: Responses): ExamResult {
+export function scoreExam<Q extends ExamQuestion>(ticket: Ticket<Q>, responses: Responses): ExamResult<Q> {
   const perQuestion = ticket.questions.map((q) => ({ questionId: q.id, correct: isAnswerCorrect(q, responses[q.id]) }));
   const correct = perQuestion.filter((r) => r.correct).length;
   const mistakes = ticket.questions

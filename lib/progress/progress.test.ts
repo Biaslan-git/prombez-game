@@ -293,7 +293,11 @@ describe("storage", () => {
   it("drops invalid entries but keeps valid ones", () => {
     const parsed = parseAreaProgress({
       version: 1,
-      questions: { "1": { box: 2, nextReviewAt: NOW, lastResults: [true, "x"] }, "2": { box: 9 }, abc: { box: 1, nextReviewAt: 0 } },
+      questions: {
+        "1": { box: 2, nextReviewAt: NOW, lastResults: [true, "x"] },
+        "2": { box: 9 },
+        abc: { box: 1, nextReviewAt: 0 },
+      },
       exams: [{ at: NOW, correct: 1, total: 2, passed: true }, null],
     });
     expect(Object.keys(parsed.questions)).toEqual(["1"]);

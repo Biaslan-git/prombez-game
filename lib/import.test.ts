@@ -8,8 +8,23 @@ describe("parseImportFile", () => {
     const r = parseImportFile({
       area,
       questions: [
-        { number: 2, text: 'Что  такое "ОПО"?', answers: [{ text: "а", is_correct: true }, { text: "б", is_correct: false }] },
-        { number: 1, text: "Q1", answers: [{ text: "а", is_correct: false }, { text: "б", is_correct: true }], norm_ref: "п. 1" },
+        {
+          number: 2,
+          text: 'Что  такое "ОПО"?',
+          answers: [
+            { text: "а", is_correct: true },
+            { text: "б", is_correct: false },
+          ],
+        },
+        {
+          number: 1,
+          text: "Q1",
+          answers: [
+            { text: "а", is_correct: false },
+            { text: "б", is_correct: true },
+          ],
+          norm_ref: "п. 1",
+        },
       ],
     });
     expect(r.errors).toEqual([]);
@@ -23,9 +38,23 @@ describe("parseImportFile", () => {
     const r = parseImportFile({
       area,
       questions: [
-        { number: 5, text: "нет правильного", answers: [{ text: "а", is_correct: false }, { text: "б", is_correct: false }] },
+        {
+          number: 5,
+          text: "нет правильного",
+          answers: [
+            { text: "а", is_correct: false },
+            { text: "б", is_correct: false },
+          ],
+        },
         { number: 6, text: "один вариант", answers: [{ text: "а", is_correct: true }] },
-        { number: 6, text: "дубль", answers: [{ text: "а", is_correct: true }, { text: "б", is_correct: false }] },
+        {
+          number: 6,
+          text: "дубль",
+          answers: [
+            { text: "а", is_correct: true },
+            { text: "б", is_correct: false },
+          ],
+        },
         { text: "без номера", answers: [] },
       ],
     });

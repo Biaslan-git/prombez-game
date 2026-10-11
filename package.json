@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -19,7 +19,10 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:studio": "drizzle-kit studio",
     "import": "tsx scripts/import-questions.ts",
-    "import:sample": "tsx scripts/import-questions.ts --area a1 --file data/sample/a1.test.json --version test-2026-10 --publish"
+    "import:sample": "tsx scripts/import-questions.ts --area a1 --file data/sample/a1.test.json --version test-2026-10 --publish",
+    "postbuild": "cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",
@@ -40,6 +43,7 @@
     "drizzle-kit": "0.31.5",
     "eslint": "9.37.0",
     "eslint-config-next": "15.5.27",
+    "prettier": "^3.6.2",
     "tailwindcss": "4.1.14",
     "tsx": "4.20.6",
     "typescript": "5.9.3",

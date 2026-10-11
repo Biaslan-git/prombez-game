@@ -24,8 +24,9 @@ describe("truncate", () => {
 
 describe("slugs", () => {
   it("builds question slug from number and first words", () => {
-    expect(questionSlug(15, "Кто осуществляет надзор за опасными производственными объектами? И что-то ещё длинное"))
-      .toBe("15-kto-osushchestvlyaet-nadzor-za-opasnymi-proizvodstvennymi-obektami-i");
+    expect(
+      questionSlug(15, "Кто осуществляет надзор за опасными производственными объектами? И что-то ещё длинное"),
+    ).toBe("15-kto-osushchestvlyaet-nadzor-za-opasnymi-proizvodstvennymi-obektami-i");
   });
   it("handles empty tail", () => {
     expect(questionSlug(3, "???")).toBe("3");

@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-bad: var(--bad);
+  --color-bad-bg: var(--bad-bg);
+  --color-warn-bg: var(--warn-bg);
+}
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --fg: #151a21;
+  --muted: #5b6573;
+  --line: #d9dee6;
+  --brand: #d35400;
+  --brand-fg: #ffffff;
+  --ok: #157a3c;
+  --ok-bg: #e3f6ea;
+  --bad: #b42318;
+  --bad-bg: #fdecea;
+  --warn-bg: #fff4dc;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0f1318;
+  --surface: #171c23;
+  --surface-2: #212833;
+  --fg: #e8ecf1;
+  --muted: #9aa5b4;
+  --line: #2c3542;
+  --brand: #f08a3c;
+  --brand-fg: #111111;
+  --ok: #4ade80;
+  --ok-bg: #133222;
+  --bad: #f87171;
+  --bad-bg: #3a1717;
+  --warn-bg: #3a2e12;
+  color-scheme: dark;
+}
+
+html {
+  font-size: 17px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.5;
+  /* Высота cookie-баннера, пока он показан (см. CookieBanner). */
+  padding-bottom: var(--cookie-h, 0px);
+}
+
+mark {
+  background: var(--warn-bg);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex min-h-12 items-center justify-center rounded-xl bg-brand px-5 py-3 text-center font-semibold text-brand-fg transition-opacity hover:opacity-90;
+  }
+  .btn-secondary {
+    @apply inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-line bg-surface px-5 py-3 text-center font-semibold hover:bg-surface-2;
+  }
+}

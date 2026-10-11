@@ -76,7 +76,12 @@ async function main() {
       ? await tx
           .select()
           .from(answers)
-          .where(inArray(answers.questionId, existing.map((q) => q.id)))
+          .where(
+            inArray(
+              answers.questionId,
+              existing.map((q) => q.id),
+            ),
+          )
           .orderBy(answers.questionId, answers.position)
       : [];
     const answersByQ = new Map<number, typeof existingAnswers>();
@@ -112,7 +117,12 @@ async function main() {
           })
           .returning({ id: questions.id });
         await tx.insert(answers).values(
-          q.answers.map((ans, position) => ({ questionId: row!.id, text: ans.text, isCorrect: ans.isCorrect, position })),
+          q.answers.map((ans, position) => ({
+            questionId: row!.id,
+            text: ans.text,
+            isCorrect: ans.isCorrect,
+            position,
+          })),
         );
         added++;
         continue;
@@ -149,7 +159,12 @@ async function main() {
       if (answersChanged) {
         await tx.delete(answers).where(eq(answers.questionId, prev.id));
         await tx.insert(answers).values(
-          q.answers.map((ans, position) => ({ questionId: prev.id, text: ans.text, isCorrect: ans.isCorrect, position })),
+          q.answers.map((ans, position) => ({
+            questionId: prev.id,
+            text: ans.text,
+            isCorrect: ans.isCorrect,
+            position,
+          })),
         );
       }
       if (changed) updated++;
@@ -159,7 +174,9 @@ async function main() {
     const deactivated = await tx
       .update(questions)
       .set({ isActive: false, updatedAt: new Date() })
-      .where(and(eq(questions.areaId, areaId), eq(questions.isActive, true), notInArray(questions.number, incomingNumbers)))
+      .where(
+        and(eq(questions.areaId, areaId), eq(questions.isActive, true), notInArray(questions.number, incomingNumbers)),
+      )
       .returning({ id: questions.id });
 
     return { added, updated, unchanged, reactivated, deactivated: deactivated.length };

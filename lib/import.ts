@@ -15,7 +15,10 @@ const questionSchema = z
     explanation: z.string().trim().min(1).nullish(),
     explanation_verified: z.boolean().optional(),
   })
-  .refine((q) => q.answers.some((a) => a.is_correct), { message: "нет ни одного правильного ответа", path: ["answers"] });
+  .refine((q) => q.answers.some((a) => a.is_correct), {
+    message: "нет ни одного правильного ответа",
+    path: ["answers"],
+  });
 
 export const importFileSchema = z.object({
   area: z.object({
@@ -23,7 +26,10 @@ export const importFileSchema = z.object({
     title: z.string().trim().min(1),
     short_description: z.string().trim().optional(),
     bank_version: z.string().trim().optional(),
-    bank_updated_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "формат YYYY-MM-DD").optional(),
+    bank_updated_at: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "формат YYYY-MM-DD")
+      .optional(),
     // Параметры экзамена — сверить с актуальным регламентом ЕПТ.
     exam: z
       .object({
@@ -71,7 +77,10 @@ export function parseImportFile(raw: unknown): ParsedImport {
     const num = (rawQ as { number?: unknown } | null)?.number;
     const label = typeof num === "number" ? `вопрос №${num}` : `вопрос #${index + 1} в файле`;
     if (!res.success) {
-      for (const i of res.error.issues) errors.push(`${label}: ${i.path.join(".") || ""} ${i.message}`.replace(":  ", ": "));
+      for (const i of res.error.issues) {
+        const path = i.path.join(".");
+        errors.push(`${label}: ${path ? `${path}: ` : ""}${i.message}`);
+      }
       return;
     }
     const q = res.data;

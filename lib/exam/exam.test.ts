@@ -38,7 +38,8 @@ describe("generateTicket", () => {
     const t = generateTicket(makePool(30), { count: 20, timeLimitMin: 20, passThreshold: 18, now: NOW }, seededRng(42));
     expect(t.questions).toHaveLength(20);
     expect(new Set(t.questions.map((q) => q.id)).size).toBe(20);
-    for (const q of t.questions) expect(q.answers.map((a) => a.id).sort()).toEqual([q.id * 10 + 1, q.id * 10 + 2, q.id * 10 + 3]);
+    for (const q of t.questions)
+      expect(q.answers.map((a) => a.id).sort()).toEqual([q.id * 10 + 1, q.id * 10 + 2, q.id * 10 + 3]);
     expect(t.timeLimitMs).toBe(20 * 60_000);
     expect(t.passThreshold).toBe(18);
     expect(t.startedAt).toBe(NOW);

@@ -36,7 +36,12 @@ export function recordInSession(s: SessionState, id: number, correct: boolean): 
  * 3. всё изучено — вопросы с самым ранним nextReviewAt (reason = "ahead").
  * Недавние вопросы сессии и ожидающие повтора пропускаем, пока есть альтернатива.
  */
-export function pickNext(orderedIds: readonly number[], progress: AreaProgress, session: SessionState, now: number): Pick {
+export function pickNext(
+  orderedIds: readonly number[],
+  progress: AreaProgress,
+  session: SessionState,
+  now: number,
+): Pick {
   if (orderedIds.length === 0) return null;
   const active = new Set(orderedIds);
   const last = session.history[session.history.length - 1];
