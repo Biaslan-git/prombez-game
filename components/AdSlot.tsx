@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { adBlockId, type AdPlacement } from "@/lib/ads/config";
 
 declare global {
@@ -37,6 +37,12 @@ export function AdSlot({
   const blockId = adBlockId(id);
   const domId = `yandex_rtb_${blockId}_${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const rendered = useRef(false);
+  // Макет для согласования мест: открыть любую страницу с ?adpreview=1. Реклама при этом не загружается,
+  // посетителям без параметра макет не виден.
+  const [preview, setPreview] = useState(false);
+  useEffect(() => {
+    setPreview(new URLSearchParams(window.location.search).get("adpreview") === "1");
+  }, []);
 
   useEffect(() => {
     if (!blockId || rendered.current) return;
@@ -49,6 +55,20 @@ export function AdSlot({
     }
   }, [blockId, domId]);
 
+  if (preview) {
+    return (
+      <aside
+        aria-label="Макет рекламного блока"
+        className={`my-6 grid place-items-center rounded-xl border-2 border-dashed border-brand bg-warn-bg px-4 text-center text-sm ${className}`}
+        style={{ minHeight }}
+      >
+        <span>
+          <b className="block text-base">Здесь будет реклама РСЯ</b>
+          блок «{id}», высота {minHeight}px
+        </span>
+      </aside>
+    );
+  }
   if (!blockId) return null;
   return (
     <aside aria-label="Реклама" className={`my-6 overflow-hidden ${className}`} style={{ minHeight }}>
