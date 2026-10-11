@@ -1,0 +1,35 @@
+# Локальная разработка: только Postgres.
+#   docker compose up -d db
+# Полный стек одной командой (приложение + БД, миграции при старте):
+#   docker compose --profile app up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: prombez
+      POSTGRES_PASSWORD: prombez
+      POSTGRES_DB: prombez
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prombez"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    profiles: ["app"]
+    build: .
+    environment:
+      DATABASE_URL: postgres://prombez:prombez@db:5432/prombez
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
