@@ -69,17 +69,29 @@ curl -X POST "$URL?area=a1&publish=1" -H "Authorization: Bearer $T" --data-binar
 
 ## Деплой (Dokploy)
 
-1. Приложение типа Dockerfile из этого репозитория, порт 3000, домен `prombez-game.ru` (Traefik выпустит сертификат).
-2. Build-time arguments (встраиваются в клиентский код): `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_YM_ID`,
-   `NEXT_PUBLIC_ADS_ENABLED`, `NEXT_PUBLIC_RSYA_BLOCK_*`, `NEXT_PUBLIC_FEEDBACK_EMAIL`.
-3. Runtime env: `DATABASE_URL`, `YANDEX_VERIFICATION`, `REVALIDATE_SECRET`.
+1. Приложение типа Dockerfile из этого репозитория (ветка `main`), порт 3000, домен `prombez-game.ru` (Traefik выпустит сертификат).
+2. **Build-аргументы** (попадают в клиентский код и статические страницы; после изменения нужна пересборка):
+   `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_YM_ID`, `NEXT_PUBLIC_ADS_ENABLED`, `NEXT_PUBLIC_RSYA_BLOCK_*`,
+   `NEXT_PUBLIC_FEEDBACK_EMAIL`, `YANDEX_VERIFICATION`. В Dokploy: Environment → Build-time Arguments.
+3. **Runtime-переменные**: `DATABASE_URL`, `REVALIDATE_SECRET`, `IMPORT_TOKEN` (и `YANDEX_VERIFICATION` на всякий случай, в обоих местах).
 4. Миграции применяются при старте контейнера (`docker-entrypoint.sh`; отключить — `SKIP_MIGRATIONS=1`).
    Healthcheck — `GET /api/health`.
-5. Импорт на проде: `docker build --target tools -t prombez-tools .` и
-   `docker run --rm -e DATABASE_URL=… -v $PWD/data:/app/data prombez-tools npx tsx scripts/import-questions.ts …`,
-   либо локально с `DATABASE_URL` прод-базы.
+5. Загрузка банков вопросов на прод: через `/api/admin/import` (см. выше). Порт БД наружу не открывается.
 
 Сборке БД не нужна: страницы областей и вопросов генерируются при первом запросе и кэшируются (ISR).
+
+## Эксплуатация
+
+- **Выкатка.** Dokploy → приложение → Deploy. Собирается образ из ветки `main`; после деплоя проверьте `https://prombez-game.ru/api/health`
+  (должно вернуть `{"status":"ok","db":"ok"}`). Автодеплой по пушу настраивается флагом `autoDeploy` в приложении.
+- **Новая версия банка вопросов.** `POST /api/admin/import` с тем же `area` и новой версией: существующие вопросы обновляются,
+  пропавшие деактивируются (страница остаётся с плашкой «вопрос исключён»), slug не меняется, кэш страниц сбрасывается сам.
+- **Смена переменных.** Runtime-переменные применяются после перезапуска приложения, build-аргументы — после новой сборки.
+- **Восстановление с нуля.** Пустая БД → запуск контейнера применяет миграции → повторная загрузка банка через `/api/admin/import`.
+  Прогресс пользователей хранится в их браузерах, на сервере его нет. Резервные копии БД настраиваются в Dokploy
+  (Database → Backups, нужен S3-совместимый диск).
+- **Секреты.** `IMPORT_TOKEN` и `REVALIDATE_SECRET` генерируются `openssl rand -hex 32`, хранятся только в Dokploy.
+  API-ключ Dokploy при компрометации перевыпускается в Settings → Profile → API/CLI.
 
 ## Переменные окружения
 
