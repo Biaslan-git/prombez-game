@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 @theme {
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --color-bg: var(--bg);
@@ -34,23 +32,6 @@
   --bad-bg: #fdecea;
   --warn-bg: #fff4dc;
   color-scheme: light;
-}
-
-.dark {
-  --bg: #0f1318;
-  --surface: #171c23;
-  --surface-2: #212833;
-  --fg: #e8ecf1;
-  --muted: #9aa5b4;
-  --line: #2c3542;
-  --brand: #f08a3c;
-  --brand-fg: #111111;
-  --ok: #4ade80;
-  --ok-bg: #133222;
-  --bad: #f87171;
-  --bad-bg: #3a1717;
-  --warn-bg: #3a2e12;
-  color-scheme: dark;
 }
 
 html {

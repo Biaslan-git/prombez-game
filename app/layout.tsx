@@ -21,21 +21,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f7f9" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1318" },
-  ],
+  themeColor: "#f6f7f9",
 };
-
-// Тема ставится до отрисовки, чтобы не было вспышки светлой темы.
-const themeScript = `(function(){try{var t=localStorage.getItem('pg:theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
+    <html lang="ru">
       <body className="min-h-dvh font-sans antialiased">
         {children}
         <Metrika />

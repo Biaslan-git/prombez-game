@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { CookieBanner } from "@/components/CookieBanner";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { SITE_NAME } from "@/lib/site";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +20,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             <Link href="/search" className="rounded-md px-3 py-2 text-muted hover:bg-surface-2 hover:text-fg">
               Поиск
             </Link>
-            <ThemeToggle />
           </nav>
         </div>
       </header>
