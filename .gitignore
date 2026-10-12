@@ -10,3 +10,5 @@ next-env.d.ts
 /playwright-report/
 /playwright/.cache/
 .DS_Store
+__pycache__/
+*.pyc
