@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CookieBanner } from "@/components/CookieBanner";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, SOURCE_NAME, SOURCE_URL } from "@/lib/site";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -38,6 +38,12 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           <Link href="/search" className="hover:text-fg">
             Поиск вопросов
           </Link>
+          <span>
+            Ответы и нормы:{" "}
+            <a href={SOURCE_URL} className="underline hover:text-fg">
+              {SOURCE_NAME}
+            </a>
+          </span>
         </div>
       </footer>
       <CookieBanner />

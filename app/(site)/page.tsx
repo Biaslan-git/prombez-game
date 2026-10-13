@@ -4,13 +4,17 @@ import { AreaCardReadiness } from "@/components/AreaProgressWidgets";
 import { JsonLd } from "@/components/JsonLd";
 import { SearchForm } from "@/components/SearchForm";
 import { getPublishedAreas } from "@/lib/data";
-import { absoluteUrl, formatDateRu, pluralRu } from "@/lib/site";
+import { SITE_NAME, absoluteUrl, formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  alternates: { canonical: "/" },
-};
+export const metadata = pageMetadata({
+  title: `Тесты по промбезопасности Ростехнадзора ${new Date().getFullYear()} — тренажёр с ответами`,
+  absoluteTitle: true,
+  description:
+    "Бесплатный тренажёр: вопросы Ростехнадзора с ответами по промышленной безопасности. Тренировка, пробный экзамен как в ЕПТ, работа над ошибками. Без регистрации.",
+  path: "/",
+});
 
 const FAQ = [
   {
@@ -29,6 +33,22 @@ const FAQ = [
     q: "Что такое готовность?",
     a: "Доля вопросов области, которые вы освоили: ответили верно несколько раз с перерывами в днях. Чем ближе к 100%, тем спокойнее на экзамене.",
   },
+  {
+    q: "Что такое ЕПТ?",
+    a: "Единый портал тестирования Ростехнадзора: информационная система, в которой проходит компьютерное тестирование при аттестации по промышленной безопасности. Тренажёр помогает подготовиться к такому тестированию.",
+  },
+  {
+    q: "Чем область А.1 отличается от областей Б?",
+    a: "А.1 — основы промышленной безопасности, общие требования, которые нужны всем. Области Б — специальные требования по отраслям и видам объектов; их коды начинаются с Б.",
+  },
+  {
+    q: "Что такое интервальное повторение?",
+    a: "Способ запоминания: вопрос, на который вы ответили верно, показывается всё реже, а ошибка возвращается быстро. Так материал закрепляется надолго, а время тратится на то, что вы ещё не знаете.",
+  },
+  {
+    q: "Сохраняется ли мой прогресс?",
+    a: "Да, в вашем браузере на этом устройстве. Если очистить данные сайта или открыть его на другом устройстве, прогресс начнётся заново.",
+  },
 ];
 
 export default async function HomePage() {
@@ -37,6 +57,13 @@ export default async function HomePage() {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     mainEntity: FAQ.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+  };
+  const orgLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: absoluteUrl("/"),
+    logo: absoluteUrl("/icon-512.png"),
   };
   const siteLd = {
     "@context": "https://schema.org",
@@ -121,6 +148,7 @@ export default async function HomePage() {
 
       <JsonLd data={faqLd} />
       <JsonLd data={siteLd} />
+      <JsonLd data={orgLd} />
     </>
   );
 }

@@ -5,7 +5,7 @@ import { AdSlot } from "@/components/AdSlot";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
 import { getArea, getQuestionPage, getSimilarQuestions, getSitemapEntries, safeStaticParams } from "@/lib/data";
-import { absoluteUrl, pluralRu } from "@/lib/site";
+import { absoluteUrl, formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
 import { truncate } from "@/lib/text";
 
 export const revalidate = 86400;
@@ -29,12 +29,14 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!data) return {};
   const { area, q } = data;
   const correct = q.answers.filter((a) => a.isCorrect).map((a) => a.text);
-  return {
-    title: { absolute: `${truncate(q.text, 70)} — ответ | Промбез ${area.code}` },
+  return pageMetadata({
+    title: `${truncate(q.text, 70)} — ответ | Промбез ${area.code}`,
+    absoluteTitle: true,
+    ogTitle: truncate(q.text, 90),
     description: truncate(`Правильный ответ: ${correct.join("; ")}`, 160),
-    alternates: { canonical: `/${area.slug}/q/${q.slug}` },
-    openGraph: { type: "article", title: truncate(q.text, 90) },
-  };
+    path: `/${area.slug}/q/${q.slug}`,
+    type: "article",
+  });
 }
 
 export default async function QuestionPage({ params }: Params) {
@@ -53,14 +55,13 @@ export default async function QuestionPage({ params }: Params) {
       name: truncate(q.text, 110),
       text: q.text,
       answerCount: 1,
-      dateCreated: q.updatedAt.toISOString(),
+      dateModified: q.updatedAt.toISOString(),
       author: { "@type": "Organization", name: "Промбез Game", url: absoluteUrl("/") },
       acceptedAnswer: {
         "@type": "Answer",
         text: correct.map((a) => a.text).join("; ") + (q.explanation ? `\n\n${q.explanation}` : ""),
         url,
-        dateCreated: q.updatedAt.toISOString(),
-        upvoteCount: 1,
+        dateModified: q.updatedAt.toISOString(),
         author: { "@type": "Organization", name: "Промбез Game", url: absoluteUrl("/") },
       },
     },
@@ -89,6 +90,17 @@ export default async function QuestionPage({ params }: Params) {
         </p>
         <h1 className="text-xl font-semibold leading-snug sm:text-2xl">{truncate(q.text, 300)}</h1>
         {q.text.length > 300 && <p className="mt-2">{q.text}</p>}
+
+        <p className="mt-4 rounded-xl bg-ok-bg px-4 py-3">
+          <b>Правильный ответ:</b> {correct.map((a) => a.text).join("; ")}
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          Вопрос №{q.number} из банка Ростехнадзора по области{" "}
+          <Link href={`/${area.slug}`} className="underline">
+            {area.code}. {area.title}
+          </Link>
+          {formatDateRu(area.bankUpdatedAt) && `. Банк актуален на ${formatDateRu(area.bankUpdatedAt)}`}.
+        </p>
 
         <h2 className="sr-only">Варианты ответа</h2>
         <ul className="mt-5 flex flex-col gap-2.5">

@@ -5,7 +5,7 @@ import { AdSlot } from "@/components/AdSlot";
 import { AreaDashboard } from "@/components/AreaProgressWidgets";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getArea, getAreaQuestionList, getPublishedAreas, safeStaticParams } from "@/lib/data";
-import { formatDateRu, pluralRu } from "@/lib/site";
+import { formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
 import { truncate } from "@/lib/text";
 
 export const revalidate = 3600;
@@ -19,13 +19,15 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const area = await getArea((await params).area);
   if (!area) return {};
-  return {
-    title: `${area.code} ${area.title} — тренажёр и ответы на вопросы`,
+  const title = `${area.code} ${area.title} — вопросы и ответы Ростехнадзора`;
+  return pageMetadata({
+    title,
+    ogTitle: title,
     description:
       area.shortDescription ||
       `Подготовка к аттестации по области ${area.code}: ${area.questionCount} вопросов с ответами, тренировка и пробный экзамен.`,
-    alternates: { canonical: `/${area.slug}` },
-  };
+    path: `/${area.slug}`,
+  });
 }
 
 const CHUNK = 50;
@@ -57,6 +59,11 @@ export default async function AreaPage({ params }: Params) {
         {area.bankVersion && ` · версия ${area.bankVersion}`}
       </p>
       {area.shortDescription && <p className="mt-3">{area.shortDescription}</p>}
+      <p className="mt-2 text-muted">
+        В области {area.code} {area.questionCount} {pluralRu(area.questionCount, "вопрос", "вопроса", "вопросов")}{" "}
+        официального банка Ростехнадзора. Можно тренироваться с интервальным повторением, пройти пробный экзамен и
+        разобрать ошибки; у каждого вопроса есть страница с правильным ответом и ссылкой на норму.
+      </p>
 
       <div className="mt-5">
         <AreaDashboard slug={area.slug} activeIds={activeIds} />

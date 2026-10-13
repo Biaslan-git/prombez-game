@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Metrika } from "@/components/Metrika";
-import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { OG_IMAGE, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,12 +13,19 @@ export const metadata: Metadata = {
     "Бесплатный онлайн-тренажёр для подготовки к аттестации по промышленной безопасности в Ростехнадзоре (ЕПТ): тренировка, пробный экзамен, работа над ошибками.",
   applicationName: SITE_NAME,
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/icon.svg", apple: "/icon-192.png" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/icon-192.png",
+  },
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION && { google: process.env.GOOGLE_SITE_VERIFICATION }),
     ...(process.env.YANDEX_VERIFICATION && { yandex: process.env.YANDEX_VERIFICATION }),
   },
-  openGraph: { siteName: SITE_NAME, locale: "ru_RU", type: "website" },
+  openGraph: { siteName: SITE_NAME, locale: "ru_RU", type: "website", url: "/", images: [OG_IMAGE] },
+  twitter: { card: "summary_large_image", images: [OG_IMAGE.url] },
 };
 
 export const viewport: Viewport = {

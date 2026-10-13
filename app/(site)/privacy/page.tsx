@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { FEEDBACK_EMAIL, SITE_URL } from "@/lib/site";
+import { FEEDBACK_EMAIL, SITE_URL, pageMetadata } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Политика конфиденциальности",
-  alternates: { canonical: "/privacy" },
-};
+  description:
+    "Какие данные собирает сайт Промбез Game, как используются cookies, Яндекс Метрика и реклама, как удалить данные.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (
