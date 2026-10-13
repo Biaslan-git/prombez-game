@@ -22,6 +22,8 @@ ARG NEXT_PUBLIC_RSYA_BLOCK_QUESTION_BOTTOM=
 ARG NEXT_PUBLIC_FEEDBACK_EMAIL=support@prombez-game.ru
 # Код подтверждения Яндекс Вебмастера попадает в <meta> статических страниц, поэтому нужен при сборке.
 ARG YANDEX_VERIFICATION=
+# То же для Google Search Console (мета-тег google-site-verification).
+ARG GOOGLE_SITE_VERIFICATION=
 ENV NEXT_TELEMETRY_DISABLED=1
 # БД при сборке не нужна: страницы областей и вопросов собираются по запросу (ISR).
 RUN DATABASE_URL= npx next build

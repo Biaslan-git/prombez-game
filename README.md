@@ -72,7 +72,7 @@ curl -X POST "$URL?area=a1&publish=1" -H "Authorization: Bearer $T" --data-binar
 1. Приложение типа Dockerfile из этого репозитория (ветка `main`), порт 3000, домен `prombez-game.ru` (Traefik выпустит сертификат).
 2. **Build-аргументы** (попадают в клиентский код и статические страницы; после изменения нужна пересборка):
    `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_YM_ID`, `NEXT_PUBLIC_ADS_ENABLED`, `NEXT_PUBLIC_RSYA_BLOCK_*`,
-   `NEXT_PUBLIC_FEEDBACK_EMAIL`, `YANDEX_VERIFICATION`. В Dokploy: Environment → Build-time Arguments.
+   `NEXT_PUBLIC_FEEDBACK_EMAIL`, `YANDEX_VERIFICATION`, `GOOGLE_SITE_VERIFICATION`. В Dokploy: Environment → Build-time Arguments.
 3. **Runtime-переменные**: `DATABASE_URL`, `REVALIDATE_SECRET`, `IMPORT_TOKEN` (и `YANDEX_VERIFICATION` на всякий случай, в обоих местах).
 4. Миграции применяются при старте контейнера (`docker-entrypoint.sh`; отключить — `SKIP_MIGRATIONS=1`).
    Healthcheck — `GET /api/health`.

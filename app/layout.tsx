@@ -14,7 +14,10 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon-192.png" },
-  verification: process.env.YANDEX_VERIFICATION ? { yandex: process.env.YANDEX_VERIFICATION } : undefined,
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION && { google: process.env.GOOGLE_SITE_VERIFICATION }),
+    ...(process.env.YANDEX_VERIFICATION && { yandex: process.env.YANDEX_VERIFICATION }),
+  },
   openGraph: { siteName: SITE_NAME, locale: "ru_RU", type: "website" },
 };
 
