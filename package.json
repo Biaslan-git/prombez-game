@@ -19,6 +19,7 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:studio": "drizzle-kit studio",
     "import": "tsx scripts/import-questions.ts",
+    "indexnow": "tsx scripts/indexnow.ts",
     "import:sample": "tsx scripts/import-questions.ts --area a1 --file data/sample/a1.test.json --version test-2026-10 --publish",
     "postbuild": "cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
     "format": "prettier --write .",

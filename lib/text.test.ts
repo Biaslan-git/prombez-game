@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { areaSlugFromCode, questionSlug } from "./slug";
-import { normalizeText, truncate } from "./text";
+import { normalizeText, questionHint, truncate } from "./text";
 
 describe("normalizeText", () => {
   it("collapses spaces and nbsp", () => {
@@ -34,5 +34,18 @@ describe("slugs", () => {
   it("builds area slug from code", () => {
     expect(areaSlugFromCode("А.1")).toBe("a1");
     expect(areaSlugFromCode("Б.9.3")).toBe("b93");
+  });
+});
+
+describe("questionHint", () => {
+  it("добавляет хвост билета к вопросу с одним верным ответом", () => {
+    expect(questionHint("Где хранятся оригиналы декларации?", 1)).toBe("Выберите правильный вариант ответа.");
+  });
+
+  it("ничего не добавляет, если выбор уже назван, ответов несколько или нет знака в конце", () => {
+    expect(questionHint("Кто? Выберите 2 варианта ответа.", 2)).toBeNull();
+    expect(questionHint("Кто? Выберите правильный вариант ответа.", 1)).toBeNull();
+    expect(questionHint("Кто может быть?", 2)).toBeNull();
+    expect(questionHint("Вопрос без знака", 1)).toBeNull();
   });
 });

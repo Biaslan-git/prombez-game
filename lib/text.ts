@@ -40,3 +40,13 @@ export function truncate(s: string, max: number): string {
   const lastSpace = cut.lastIndexOf(" ");
   return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s,.;:–-]+$/, "") + "…";
 }
+
+/**
+ * Хвост вопроса в формате билета. При импорте мы убираем «Выберите правильный вариант ответа.»,
+ * а в поиске люди вставляют вопрос целиком, поэтому на странице возвращаем его. Если число ответов
+ * уже названо в тексте («Выберите 2 варианта ответа»), ничего не добавляем.
+ */
+export function questionHint(text: string, correctCount: number): string | null {
+  if (correctCount !== 1 || /выберите/i.test(text) || !/[?.]$/.test(text.trim())) return null;
+  return "Выберите правильный вариант ответа.";
+}

@@ -3,6 +3,7 @@ import { cache } from "react";
 import { getDb } from "./db/client";
 import { answers, areas, questions, type Area } from "./db/schema";
 import { HL_END, HL_START } from "./highlight";
+import { getTopic, summarizeTopics, type TopicSummary } from "./topics";
 
 export type AreaSummary = Area & { questionCount: number };
 
@@ -94,6 +95,20 @@ export const getAreaQuestionList = cache(async (areaId: number): Promise<Questio
     .where(eq(questions.areaId, areaId))
     .orderBy(asc(questions.number));
 });
+
+/** Темы области, в которых достаточно вопросов для отдельной страницы. */
+export const getAreaTopics = cache(async (areaId: number): Promise<TopicSummary[]> => {
+  const list = await getAreaQuestionList(areaId);
+  return summarizeTopics(list.filter((q) => q.isActive));
+});
+
+/** Вопросы темы с ответами или null, если темы нет или в ней слишком мало вопросов. */
+export async function getTopicQuestions(areaId: number, topicSlug: string) {
+  const topic = getTopic(topicSlug);
+  if (!topic || !(await getAreaTopics(areaId)).some((t) => t.slug === topicSlug)) return null;
+  const all = await getAreaQuestions(areaId);
+  return { topic, questions: all.filter((q) => topic.pattern.test(q.text)) };
+}
 
 export type QuestionPageData = {
   id: number;

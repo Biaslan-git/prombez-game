@@ -4,9 +4,17 @@ import { notFound } from "next/navigation";
 import { AdSlot } from "@/components/AdSlot";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
-import { getArea, getQuestionPage, getSimilarQuestions, getSitemapEntries, safeStaticParams } from "@/lib/data";
+import {
+  getArea,
+  getAreaTopics,
+  getQuestionPage,
+  getSimilarQuestions,
+  getSitemapEntries,
+  safeStaticParams,
+} from "@/lib/data";
 import { absoluteUrl, formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
-import { truncate } from "@/lib/text";
+import { questionHint, truncate } from "@/lib/text";
+import { topicsFor } from "@/lib/topics";
 
 export const revalidate = 86400;
 
@@ -28,12 +36,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const data = await load(params);
   if (!data) return {};
   const { area, q } = data;
-  const correct = q.answers.filter((a) => a.isCorrect).map((a) => a.text);
   return pageMetadata({
     title: `${truncate(q.text, 70)} — ответ | Промбез ${area.code}`,
     absoluteTitle: true,
     ogTitle: truncate(q.text, 90),
-    description: truncate(`Правильный ответ: ${correct.join("; ")}`, 160),
+    // Сам ответ в описание не выносим: он уже есть в расширенном результате, а описание должно звать на страницу.
+    description: truncate(
+      `Вопрос №${q.number} области ${area.code}: правильный ответ, все варианты${q.normRef ? ", ссылка на норму" : ""}. Тренажёр и пробный экзамен — бесплатно, без регистрации.`,
+      160,
+    ),
     path: `/${area.slug}/q/${q.slug}`,
     type: "article",
   });
@@ -44,7 +55,12 @@ export default async function QuestionPage({ params }: Params) {
   if (!data) notFound();
   const { area, q } = data;
   const correct = q.answers.filter((a) => a.isCorrect);
-  const similar = await getSimilarQuestions(area.id, q.id, q.text);
+  const [similar, areaTopics] = await Promise.all([getSimilarQuestions(area.id, q.id, q.text), getAreaTopics(area.id)]);
+  const hint = questionHint(q.text, correct.length);
+  const myTopics = topicsFor(q.text)
+    .map((t) => areaTopics.find((a) => a.slug === t.slug))
+    .filter((t): t is NonNullable<typeof t> => !!t)
+    .slice(0, 4);
   const url = absoluteUrl(`/${area.slug}/q/${q.slug}`);
 
   const qaLd = {
@@ -53,7 +69,7 @@ export default async function QuestionPage({ params }: Params) {
     mainEntity: {
       "@type": "Question",
       name: truncate(q.text, 110),
-      text: q.text,
+      text: hint ? `${q.text} ${hint}` : q.text,
       answerCount: 1,
       dateModified: q.updatedAt.toISOString(),
       author: { "@type": "Organization", name: "Промбез Game", url: absoluteUrl("/") },
@@ -90,6 +106,7 @@ export default async function QuestionPage({ params }: Params) {
         </p>
         <h1 className="text-xl font-semibold leading-snug sm:text-2xl">{truncate(q.text, 300)}</h1>
         {q.text.length > 300 && <p className="mt-2">{q.text}</p>}
+        {hint && <p className="mt-2 text-muted">{hint}</p>}
 
         <p className="mt-4 rounded-xl bg-ok-bg px-4 py-3">
           <b>Правильный ответ:</b> {correct.map((a) => a.text).join("; ")}
@@ -164,6 +181,21 @@ export default async function QuestionPage({ params }: Params) {
           Начать тренировку
         </Link>
       </section>
+
+      {myTopics.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-3 text-lg font-semibold">Ещё по теме</h2>
+          <ul className="flex flex-wrap gap-2">
+            {myTopics.map((t) => (
+              <li key={t.slug}>
+                <Link href={`/${area.slug}/t/${t.slug}`} className="btn-secondary text-sm">
+                  {t.title} · {t.count}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {similar.length > 0 && (
         <section className="mt-8">

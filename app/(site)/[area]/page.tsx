@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { AdSlot } from "@/components/AdSlot";
 import { AreaDashboard } from "@/components/AreaProgressWidgets";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { getArea, getAreaQuestionList, getPublishedAreas, safeStaticParams } from "@/lib/data";
+import { getArea, getAreaQuestionList, getAreaTopics, getPublishedAreas, safeStaticParams } from "@/lib/data";
 import { formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
 import { truncate } from "@/lib/text";
 
@@ -35,7 +35,7 @@ const CHUNK = 50;
 export default async function AreaPage({ params }: Params) {
   const area = await getArea((await params).area);
   if (!area) notFound();
-  const list = await getAreaQuestionList(area.id);
+  const [list, topics] = await Promise.all([getAreaQuestionList(area.id), getAreaTopics(area.id)]);
   const activeIds = list.filter((q) => q.isActive).map((q) => q.id);
 
   const chunks: (typeof list)[] = [];
@@ -68,6 +68,21 @@ export default async function AreaPage({ params }: Params) {
       <div className="mt-5">
         <AreaDashboard slug={area.slug} activeIds={activeIds} />
       </div>
+
+      {topics.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-xl font-semibold">Вопросы по темам</h2>
+          <ul className="flex flex-wrap gap-2">
+            {topics.map((t) => (
+              <li key={t.slug}>
+                <Link href={`/${area.slug}/t/${t.slug}`} className="btn-secondary text-sm">
+                  {t.title} · {t.count}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-10">
         <h2 className="mb-3 text-xl font-semibold">Все вопросы области {area.code}</h2>

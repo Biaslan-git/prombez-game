@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getPublishedAreas, getSitemapEntries } from "@/lib/data";
+import { getAreaTopics, getPublishedAreas, getSitemapEntries } from "@/lib/data";
 import { absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,9 @@ const PAGES_UPDATED = new Date("2026-10-13");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [areas, questions] = await Promise.all([getPublishedAreas(), getSitemapEntries()]);
+  const topics = (
+    await Promise.all(areas.map(async (a) => (await getAreaTopics(a.id)).map((t) => ({ area: a, slug: t.slug }))))
+  ).flat();
   // Дата последнего изменения содержимого сайта: самая свежая правка вопросов.
   const lastContentChange = questions.reduce<Date | undefined>(
     (max, q) => (!max || q.updatedAt > max ? q.updatedAt : max),
@@ -24,6 +27,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: a.bankUpdatedAt ?? undefined,
       changeFrequency: "weekly" as const,
       priority: 0.9,
+    })),
+    ...topics.map((t) => ({
+      url: absoluteUrl(`/${t.area.slug}/t/${t.slug}`),
+      lastModified: t.area.bankUpdatedAt ?? undefined,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
     })),
     ...questions.map((q) => ({
       url: absoluteUrl(`/${q.areaSlug}/q/${q.slug}`),
