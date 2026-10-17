@@ -3,6 +3,7 @@ import { cache } from "react";
 import { getDb } from "./db/client";
 import { answers, areas, questions, type Area } from "./db/schema";
 import { HL_END, HL_START } from "./highlight";
+import { pickCanonicals, type CanonicalTarget } from "./canonical";
 import { getTopic, summarizeTopics, type TopicSummary } from "./topics";
 
 export type AreaSummary = Area & { questionCount: number };
@@ -259,13 +260,65 @@ function highlightSubstring(text: string, term: string): string {
   return text.slice(0, i) + HL_START + text.slice(i, i + term.length) + HL_END + text.slice(i + term.length);
 }
 
+let dupMemo: { at: number; value: Promise<Map<number, CanonicalTarget>> } | null = null;
+
+/**
+ * id неглавных копий вопроса → адрес главной страницы. Считается по всем опубликованным вопросам, поэтому
+ * результат держим в памяти 10 минут: при сборке и ISR им пользуются тысячи страниц.
+ */
+export function getDuplicateTargets(): Promise<Map<number, CanonicalTarget>> {
+  if (dupMemo && Date.now() - dupMemo.at < 10 * 60_000) return dupMemo.value;
+  const value = (async () => {
+    const db = getDb();
+    const published = and(eq(areas.isPublished, true), eq(questions.isActive, true));
+    const [rows, correct] = await Promise.all([
+      db
+        .select({
+          id: questions.id,
+          number: questions.number,
+          slug: questions.slug,
+          text: questions.text,
+          areaSlug: areas.slug,
+          areaSort: areas.sortOrder,
+          areaCode: areas.code,
+        })
+        .from(questions)
+        .innerJoin(areas, eq(areas.id, questions.areaId))
+        .where(published),
+      db
+        .select({ questionId: answers.questionId, text: answers.text })
+        .from(answers)
+        .innerJoin(questions, eq(questions.id, answers.questionId))
+        .innerJoin(areas, eq(areas.id, questions.areaId))
+        .where(and(published, eq(answers.isCorrect, true))),
+    ]);
+    const byQ = new Map<number, string[]>();
+    for (const c of correct) {
+      const list = byQ.get(c.questionId);
+      if (list) list.push(c.text);
+      else byQ.set(c.questionId, [c.text]);
+    }
+    return pickCanonicals(rows.map((r) => ({ ...r, correct: byQ.get(r.id) ?? [] })));
+  })();
+  dupMemo = { at: Date.now(), value };
+  value.catch(() => {
+    if (dupMemo?.value === value) dupMemo = null;
+  });
+  return value;
+}
+
+/** Страницы вопросов для sitemap: без неглавных копий. */
 export async function getSitemapEntries() {
-  return getDb()
-    .select({ areaSlug: areas.slug, slug: questions.slug, updatedAt: questions.updatedAt })
-    .from(questions)
-    .innerJoin(areas, eq(areas.id, questions.areaId))
-    .where(eq(areas.isPublished, true))
-    .orderBy(asc(areas.sortOrder), asc(questions.number));
+  const [rows, dups] = await Promise.all([
+    getDb()
+      .select({ id: questions.id, areaSlug: areas.slug, slug: questions.slug, updatedAt: questions.updatedAt })
+      .from(questions)
+      .innerJoin(areas, eq(areas.id, questions.areaId))
+      .where(eq(areas.isPublished, true))
+      .orderBy(asc(areas.sortOrder), asc(questions.number)),
+    getDuplicateTargets(),
+  ]);
+  return rows.filter((r) => !dups.has(r.id));
 }
 
 /** Параметры для generateStaticParams: при сборке без БД возвращаем пустой список (страницы соберутся по ISR). */

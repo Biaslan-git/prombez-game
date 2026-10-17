@@ -41,12 +41,14 @@ export function pageMetadata(o: {
   absoluteTitle?: boolean;
   ogTitle?: string;
   type?: "website" | "article";
+  /** Если страница — копия другой, canonical указывает на главную (og:url остаётся своим). */
+  canonical?: string;
 }): Metadata {
   const ogTitle = o.ogTitle ?? o.title;
   return {
     title: o.absoluteTitle ? { absolute: o.title } : o.title,
     description: o.description,
-    alternates: { canonical: o.path },
+    alternates: { canonical: o.canonical ?? o.path },
     openGraph: {
       siteName: SITE_NAME,
       locale: "ru_RU",

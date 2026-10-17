@@ -7,6 +7,7 @@ import { JsonLd } from "@/components/JsonLd";
 import {
   getArea,
   getAreaTopics,
+  getDuplicateTargets,
   getQuestionPage,
   getSimilarQuestions,
   getSitemapEntries,
@@ -36,6 +37,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const data = await load(params);
   if (!data) return {};
   const { area, q } = data;
+  const main = (await getDuplicateTargets()).get(q.id);
   return pageMetadata({
     title: `${truncate(q.text, 70)} — ответ | Промбез ${area.code}`,
     absoluteTitle: true,
@@ -46,6 +48,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       160,
     ),
     path: `/${area.slug}/q/${q.slug}`,
+    canonical: main && `/${main.areaSlug}/q/${main.slug}`,
     type: "article",
   });
 }
@@ -61,7 +64,8 @@ export default async function QuestionPage({ params }: Params) {
     .map((t) => areaTopics.find((a) => a.slug === t.slug))
     .filter((t): t is NonNullable<typeof t> => !!t)
     .slice(0, 4);
-  const url = absoluteUrl(`/${area.slug}/q/${q.slug}`);
+  const main = (await getDuplicateTargets()).get(q.id);
+  const url = absoluteUrl(main ? `/${main.areaSlug}/q/${main.slug}` : `/${area.slug}/q/${q.slug}`);
 
   const qaLd = {
     "@context": "https://schema.org",
