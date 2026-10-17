@@ -279,7 +279,6 @@ export function getDuplicateTargets(): Promise<Map<number, CanonicalTarget>> {
           slug: questions.slug,
           text: questions.text,
           areaSlug: areas.slug,
-          areaSort: areas.sortOrder,
           areaCode: areas.code,
         })
         .from(questions)

@@ -1,12 +1,12 @@
 /**
  * Дубли вопросов между областями: один и тот же вопрос с теми же верными ответами встречается в нескольких областях,
- * и у каждого есть своя страница. Для поиска главной считаем страницу в области с меньшим sortOrder (затем с меньшим номером),
+ * и у каждого есть своя страница. Главной считаем страницу в области, чей код идёт первым по «естественному» порядку
+ * (А.1 раньше Б.1.1, Б.1.2 раньше Б.1.10; sortOrder не используем, он ничего не гарантирует), затем с меньшим номером;
  * а остальные ссылаются на неё через rel=canonical и не попадают в sitemap. Сами вопросы остаются в своих областях.
  */
 export type DupItem = {
   id: number;
   areaSlug: string;
-  areaSort: number;
   areaCode: string;
   number: number;
   slug: string;
@@ -42,7 +42,7 @@ export function pickCanonicals(items: DupItem[]): Map<number, CanonicalTarget> {
   for (const g of groups.values()) {
     if (g.length < 2) continue;
     const [main, ...rest] = [...g].sort(
-      (a, b) => a.areaSort - b.areaSort || a.areaCode.localeCompare(b.areaCode, "ru") || a.number - b.number,
+      (a, b) => a.areaCode.localeCompare(b.areaCode, "ru", { numeric: true }) || a.number - b.number,
     );
     for (const it of rest) out.set(it.id, { areaSlug: main!.areaSlug, slug: main!.slug });
   }
