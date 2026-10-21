@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     ogTitle: truncate(q.text, 90),
     // Сам ответ в описание не выносим: он уже есть в расширенном результате, а описание должно звать на страницу.
     description: truncate(
-      `Вопрос №${q.number} области ${area.code}: правильный ответ, все варианты${q.normRef ? ", ссылка на норму" : ""}. Тренажёр и пробный экзамен — бесплатно, без регистрации.`,
+      `Все варианты ответа${q.normRef ? ", ссылка на норму" : ""} и тренажёр на ${area.questionCount} ${pluralRu(area.questionCount, "вопрос", "вопроса", "вопросов")} области ${area.code} с пробным экзаменом — бесплатно, без регистрации.`,
       160,
     ),
     path: `/${area.slug}/q/${q.slug}`,
@@ -124,6 +124,11 @@ export default async function QuestionPage({ params }: Params) {
             {area.code}. {area.title}
           </Link>
           {formatDateRu(area.bankUpdatedAt) && `. Банк актуален на ${formatDateRu(area.bankUpdatedAt)}`}.
+        </p>
+        <p className="mt-3">
+          <Link href={`/${area.slug}/train`} className="font-semibold underline">
+            Потренироваться по всем {area.questionCount} вопросам области {area.code} →
+          </Link>
         </p>
 
         <h2 className="sr-only">Варианты ответа</h2>
