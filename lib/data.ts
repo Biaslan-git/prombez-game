@@ -119,6 +119,7 @@ export type QuestionPageData = {
   isActive: boolean;
   explanation: string | null;
   normRef: string | null;
+  createdAt: Date;
   updatedAt: Date;
   answers: { id: number; text: string; isCorrect: boolean }[];
   prev: { slug: string; number: number } | null;
@@ -160,6 +161,7 @@ export const getQuestionPage = cache(async (areaId: number, slug: string): Promi
     isActive: q.isActive,
     explanation: q.explanationVerified ? q.explanation : null,
     normRef: q.normRef,
+    createdAt: q.createdAt,
     updatedAt: q.updatedAt,
     answers: ans,
     prev: prev ?? null,
