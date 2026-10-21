@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { area, q } = data;
   const main = (await getDuplicateTargets()).get(q.id);
   return pageMetadata({
-    title: `${truncate(q.text, 70)} — ответ | Промбез ${area.code}`,
+    title: `${truncate(q.text, 70)} — ответ | Бесплатный тренажёр ${area.code}`,
     absoluteTitle: true,
     ogTitle: truncate(q.text, 90),
     // Сам ответ в описание не выносим: он уже есть в расширенном результате, а описание должно звать на страницу.
