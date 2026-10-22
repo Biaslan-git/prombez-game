@@ -4,7 +4,10 @@ export type Goal =
   | "exam_started"
   | "exam_finished"
   | "exam_passed"
-  | "search_used";
+  | "search_used"
+  | "quiz_started"
+  | "quiz_done"
+  | "share_click";
 
 declare global {
   interface Window {

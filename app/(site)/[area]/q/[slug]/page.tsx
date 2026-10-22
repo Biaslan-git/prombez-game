@@ -4,8 +4,11 @@ import { notFound } from "next/navigation";
 import { AdSlot } from "@/components/AdSlot";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
+import { MiniQuiz } from "@/components/MiniQuiz";
+import { ShareButtons } from "@/components/ShareButtons";
 import {
   getArea,
+  getAreaQuestions,
   getAreaTopics,
   getDuplicateTargets,
   getQuestionPage,
@@ -14,6 +17,7 @@ import {
   safeStaticParams,
 } from "@/lib/data";
 import { absoluteUrl, formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
+import { pickQuizQuestions } from "@/lib/quiz";
 import { questionHint, truncate } from "@/lib/text";
 import { topicsFor } from "@/lib/topics";
 
@@ -58,7 +62,12 @@ export default async function QuestionPage({ params }: Params) {
   if (!data) notFound();
   const { area, q } = data;
   const correct = q.answers.filter((a) => a.isCorrect);
-  const [similar, areaTopics] = await Promise.all([getSimilarQuestions(area.id, q.id, q.text), getAreaTopics(area.id)]);
+  const [similar, areaTopics, areaQuestions] = await Promise.all([
+    getSimilarQuestions(area.id, q.id, q.text),
+    getAreaTopics(area.id),
+    getAreaQuestions(area.id),
+  ]);
+  const quizQuestions = pickQuizQuestions(areaQuestions, q);
   const hint = questionHint(q.text, correct.length);
   const myTopics = topicsFor(q.text)
     .map((t) => areaTopics.find((a) => a.slug === t.slug))
@@ -130,6 +139,13 @@ export default async function QuestionPage({ params }: Params) {
             Потренироваться по всем {area.questionCount} вопросам области {area.code} →
           </Link>
         </p>
+        <div className="mt-3">
+          <ShareButtons
+            url={url}
+            text={`${truncate(q.text, 120)} Ответ на вопрос из банка Ростехнадзора:`}
+            where="question"
+          />
+        </div>
 
         <h2 className="sr-only">Варианты ответа</h2>
         <ul className="mt-5 flex flex-col gap-2.5">
@@ -163,6 +179,13 @@ export default async function QuestionPage({ params }: Params) {
           </section>
         )}
       </article>
+
+      <MiniQuiz
+        area={{ slug: area.slug, code: area.code }}
+        questions={quizQuestions}
+        topicTitle={myTopics[0]?.title ?? null}
+        pageUrl={url}
+      />
 
       <AdSlot id="question" />
 

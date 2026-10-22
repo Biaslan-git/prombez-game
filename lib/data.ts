@@ -38,8 +38,24 @@ export const getArea = cache(async (slug: string): Promise<AreaSummary | null> =
   return all.find((a) => a.slug === slug) ?? null;
 });
 
-/** Все активные вопросы области с ответами — для тренировки и экзамена. */
-export const getAreaQuestions = cache(async (areaId: number): Promise<ClientQuestion[]> => {
+const areaQuestionsMemo = new Map<number, { at: number; value: Promise<ClientQuestion[]> }>();
+
+/**
+ * Все активные вопросы области с ответами — для тренировки, экзамена и мини-теста.
+ * Результат держим минуту в памяти: при сборке и ISR им пользуются тысячи страниц вопросов.
+ */
+export function getAreaQuestions(areaId: number): Promise<ClientQuestion[]> {
+  const hit = areaQuestionsMemo.get(areaId);
+  if (hit && Date.now() - hit.at < 60_000) return hit.value;
+  const value = loadAreaQuestions(areaId);
+  areaQuestionsMemo.set(areaId, { at: Date.now(), value });
+  value.catch(() => {
+    if (areaQuestionsMemo.get(areaId)?.value === value) areaQuestionsMemo.delete(areaId);
+  });
+  return value;
+}
+
+async function loadAreaQuestions(areaId: number): Promise<ClientQuestion[]> {
   const db = getDb();
   const qs = await db
     .select({
@@ -79,7 +95,7 @@ export const getAreaQuestions = cache(async (areaId: number): Promise<ClientQues
       normRef: q.normRef,
     };
   });
-});
+}
 
 export type QuestionListItem = { id: number; number: number; slug: string; text: string; isActive: boolean };
 
@@ -320,6 +336,23 @@ export async function getSitemapEntries() {
     getDuplicateTargets(),
   ]);
   return rows.filter((r) => !dups.has(r.id));
+}
+
+/** Канонические вопросы области для «вопроса дня» в Telegram (дубли других областей не берём). */
+export async function getPollCandidates(areaSlug: string) {
+  const area = await getArea(areaSlug);
+  if (!area) return [];
+  const [list, dups] = await Promise.all([getAreaQuestions(area.id), getDuplicateTargets()]);
+  return list
+    .filter((q) => !dups.has(q.id))
+    .map((q) => ({
+      id: q.id,
+      areaSlug: area.slug,
+      slug: q.slug,
+      text: q.text,
+      normRef: q.normRef,
+      answers: q.answers.map((a) => ({ text: a.text, isCorrect: a.isCorrect })),
+    }));
 }
 
 /** Параметры для generateStaticParams: при сборке без БД возвращаем пустой список (страницы соберутся по ISR). */

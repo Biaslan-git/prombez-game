@@ -47,3 +47,24 @@ test("SEO-страница вопроса работает без JS", async ({ 
   await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(2);
   await ctx.close();
 });
+
+test("мини-тест под вопросом: 5 ответов → итог и «Поделиться»", async ({ page }) => {
+  await page.goto("/a1");
+  await page.getByRole("link", { name: /Кто имеет право выдавать/ }).click();
+  await expect(page.getByRole("link", { name: "Telegram" }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Начать мини-тест" }).click();
+  const quiz = page.getByTestId("mini-quiz");
+  for (let i = 0; i < 5; i++) {
+    await quiz.locator("[role=radio], [role=checkbox]").first().click();
+    const submit = quiz.getByRole("button", { name: "Ответить" });
+    if (await submit.isVisible()) await submit.click();
+    await expect(quiz.getByTestId("quiz-verdict")).toBeVisible();
+    await quiz.getByRole("button", { name: i === 4 ? "Показать результат" : "Дальше" }).click();
+  }
+  await expect(quiz.getByTestId("quiz-score")).toContainText(/из 5 верно/);
+  await expect(quiz.getByRole("link", { name: "Telegram" })).toHaveAttribute("href", /t\.me\/share\/url/);
+  // Ответы мини-теста попали в общий прогресс области.
+  const stored = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("pg:v1:progress:")));
+  expect(stored.length).toBe(1);
+});

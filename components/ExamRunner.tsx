@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnswerList, Explanation } from "@/components/AnswerList";
+import { ShareButtons } from "@/components/ShareButtons";
 import { useAreaProgress } from "@/components/useAreaProgress";
 import { useAnswerHotkeys } from "@/components/useHotkeys";
 import type { ClientAnswer, ClientQuestion } from "@/lib/data";
@@ -17,7 +18,7 @@ import {
 } from "@/lib/exam";
 import { reachGoal } from "@/lib/metrika";
 import { recordExam } from "@/lib/progress";
-import { pluralRu } from "@/lib/site";
+import { absoluteUrl, pluralRu } from "@/lib/site";
 
 type Props = {
   area: { slug: string; code: string; title: string };
@@ -359,6 +360,13 @@ function ExamResultView({
         <Link href={`/${area.slug}`} className="btn-secondary flex-1">
           К области {area.code}
         </Link>
+      </div>
+      <div className="mt-4">
+        <ShareButtons
+          url={absoluteUrl(`/${area.slug}`)}
+          text={`Пробный экзамен по области ${area.code}: ${result.correct} из ${result.total} верно${result.passed ? ", сдал" : ""}. Проверь себя бесплатно:`}
+          where="exam"
+        />
       </div>
 
       {result.mistakes.length > 0 && (
