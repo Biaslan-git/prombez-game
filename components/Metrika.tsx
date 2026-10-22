@@ -1,23 +1,22 @@
 "use client";
 
 import Script from "next/script";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { YM_ID } from "@/lib/metrika";
 
 function Hits() {
   const pathname = usePathname();
-  const search = useSearchParams();
   const first = useRef(true);
   useEffect(() => {
-    // Первый хит отправляет init, дальше — переходы внутри SPA.
+    // Первый хит отправляет init, дальше — переходы между страницами. Смену query не считаем:
+    // поиск обновляет адрес на каждую паузу в наборе, и каждая буква стала бы просмотром.
     if (first.current) {
       first.current = false;
       return;
     }
-    const qs = search.toString();
-    window.ym?.(YM_ID, "hit", pathname + (qs ? `?${qs}` : ""));
-  }, [pathname, search]);
+    window.ym?.(YM_ID, "hit", location.pathname);
+  }, [pathname]);
   return null;
 }
 
