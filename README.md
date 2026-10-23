@@ -103,8 +103,26 @@ curl -X POST "$URL?area=a1&publish=1" -H "Authorization: Bearer $T" --data-binar
 ## Telegram-бот «Вопрос дня»
 
 Человек нажимает на сайте «Получать вопрос дня», в боте `/start` подписывает его, каждый день в 09:00 (МСК) бот присылает викторину (`sendPoll`), `/stop` удаляет подписку.
+Бот работает на [Telegram Serverless](https://core.telegram.org/bots/serverless): код и база подписчиков (SQLite) живут у Telegram, серверу сайта до Telegram ходить не нужно. Проект лежит в `bot/`.
 
-1. Создайте бота в `@BotFather` (`/newbot`), токен — в `TELEGRAM_BOT_TOKEN`, username без `@` — в `NEXT_PUBLIC_TELEGRAM_BOT` (**build-arg**, как остальные `NEXT_PUBLIC_*`).
-2. Задайте `TELEGRAM_WEBHOOK_SECRET` и `CRON_TOKEN` (случайные строки) в runtime-переменных.
-3. Включите вебхук: `curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" -d url=https://prombez-game.ru/api/telegram/webhook -d secret_token=$TELEGRAM_WEBHOOK_SECRET`.
-4. Расписание: ежедневно `POST /api/telegram/daily` с `Authorization: Bearer $CRON_TOKEN` (проверка без отправки: `?dryRun=1`). Вопрос дня выбирается детерминированно по дате из области `TELEGRAM_AREA` (по умолчанию `a1`).
+- `bot/tgcloud/handlers/message.js` — команды `/start`, `/question`, `/stop`, `/help`; `bot/tgcloud/schema.js` — таблица `subscribers`.
+- `bot/tgcloud/lib/questions.js` — вопросы, зашитые в код бота (только с одним верным ответом и подходящие по лимитам Telegram). Обновляется после импорта банка:
+  `node scripts/build-bot-questions.mjs && cd bot && npx tgcloud push`.
+- `bot/tgcloud/endpoints/daily.js` — рассылка подписчикам, `endpoints/stats.js` — число подписчиков.
+- Расписание: Serverless не умеет cron, поэтому ежедневно запускает GitHub Actions (`.github/workflows/daily-question.yml`) командой `tgcloud run endpoints/daily`.
+  Нужен секрет репозитория `TGCLOUD_TOKEN` (@BotFather → бот → Serverless → CLI Access → Access token). Вручную: вкладка Actions → Run workflow.
+
+Работа с ботом (токен — только в переменной окружения `TGCLOUD_TOKEN`, в файлы не записывается):
+
+```bash
+cd bot && npm install
+npm test                                   # тесты логики бота (node --test)
+npx tgcloud status                         # что изменилось локально
+npx tgcloud push                           # выложить код
+npx tgcloud migrate --safe                 # применить изменения схемы БД
+npx tgcloud webhook sync                   # привязать вебхук к платформе (после первого push и при новых handlers)
+npx tgcloud run endpoints/stats '{}' --ctx '{ initData: { user: { id: 1 } } }'   # число подписчиков
+```
+
+На сайте кнопки подписки появляются, если задан build-arg `NEXT_PUBLIC_TELEGRAM_BOT` (username бота без `@`); список вопросов для генератора отдаёт `GET /api/telegram/questions`.
+Из окружений без прямого выхода в интернет (песочница, корпоративный прокси) CLI запускайте с `NODE_USE_ENV_PROXY=1`.

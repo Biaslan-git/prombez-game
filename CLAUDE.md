@@ -20,6 +20,7 @@
 - Тренировка/экзамен/ошибки — клиентские компоненты (`components/Trainer.tsx`, `ExamRunner.tsx`), `noindex`.
   SEO-страницы вопросов — серверные, ISR, работают без JS.
 - SEO: одинаковые вопросы разных областей склеиваются через canonical (`lib/canonical.ts`, главная — область с первым кодом, А.1 раньше Б), копии не попадают в sitemap. Темы (`lib/topics.ts`) — страницы `/[area]/t/[topic]`, считаются по ключевым словам. После импорта/деплоя: `npm run indexnow` (IndexNow для Яндекса и Bing).
+- Telegram-бот «Вопрос дня» — отдельный проект `bot/` на Telegram Serverless (не на нашем сервере: он не достаёт до Telegram). После импорта банка: `node scripts/build-bot-questions.mjs && cd bot && npx tgcloud push`. Подробности — README, раздел «Telegram-бот».
 - Реклама: только через `<AdSlot id=… />`, никогда в экзамене и не между вопросом и ответом.
 
 ## Соглашения

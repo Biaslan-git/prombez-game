@@ -2,3 +2,7 @@ drizzle/
 data/
 SPEC.md
 package-lock.json
+bot/.tgcloud/
+bot/node_modules/
+bot/package-lock.json
+bot/tgcloud/lib/questions.js

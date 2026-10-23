@@ -6,7 +6,16 @@ const compat = new FlatCompat({ baseDirectory: dirname(fileURLToPath(import.meta
 
 const config = [
   {
-    ignores: [".next/**", "node_modules/**", "drizzle/**", "playwright-report/**", "test-results/**", "next-env.d.ts"],
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "drizzle/**",
+      "playwright-report/**",
+      "test-results/**",
+      "next-env.d.ts",
+      "bot/.tgcloud/**",
+      "bot/node_modules/**",
+    ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];

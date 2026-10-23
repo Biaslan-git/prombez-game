@@ -1,0 +1,30 @@
+name: Вопрос дня в Telegram
+
+# Telegram Serverless не умеет запускать код по расписанию, поэтому рассылку каждый день запускает GitHub Actions
+# (в 09:00 по Москве) через официальный CLI: `tgcloud run endpoints/daily`. Нужен секрет репозитория TGCLOUD_TOKEN
+# (@BotFather → бот → Serverless → CLI Access → Access token). Запустить вручную: вкладка Actions → Run workflow.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: bot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bot/package-lock.json
+      - run: npm ci
+      - name: Отправить вопрос дня подписчикам бота
+        env:
+          TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+        run: |
+          npx tgcloud run endpoints/daily '{}' --ctx '{ initData: { user: { id: 1 } } }'

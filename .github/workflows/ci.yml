@@ -32,6 +32,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run format:check
       - run: npm test
+      - name: Тесты бота (Telegram Serverless)
+        run: node --test bot/test/*.test.js
       - run: npm run db:migrate
       - run: npm run import:sample
       - run: npm run build

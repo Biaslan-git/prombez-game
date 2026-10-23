@@ -1,0 +1,16 @@
+{
+  "name": "prombez-game-bot",
+  "private": true,
+  "type": "module",
+  "description": "Telegram-бот «Вопрос дня» на Telegram Serverless (https://core.telegram.org/bots/serverless)",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "questions": "node ../scripts/build-bot-questions.mjs",
+    "deploy": "tgcloud push",
+    "status": "tgcloud status",
+    "run": "tgcloud run"
+  },
+  "devDependencies": {
+    "@tgcloud/cli": "^0.2.0"
+  }
+}
