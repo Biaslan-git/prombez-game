@@ -6,6 +6,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
 import { MiniQuiz } from "@/components/MiniQuiz";
 import { ShareButtons } from "@/components/ShareButtons";
+import { TelegramSubscribe } from "@/components/TelegramSubscribe";
 import {
   getArea,
   getAreaQuestions,
@@ -186,6 +187,8 @@ export default async function QuestionPage({ params }: Params) {
         topicTitle={myTopics[0]?.title ?? null}
         pageUrl={url}
       />
+
+      <TelegramSubscribe where="question" />
 
       <AdSlot id="question" />
 

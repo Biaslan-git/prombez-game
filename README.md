@@ -99,3 +99,12 @@ curl -X POST "$URL?area=a1&publish=1" -H "Authorization: Bearer $T" --data-binar
 или пустой ID блока — рекламу.
 
 Цели Метрики: `answer_given`, `session_10_done`, `exam_started`, `exam_finished`, `exam_passed`, `search_used`.
+
+## Telegram-бот «Вопрос дня»
+
+Человек нажимает на сайте «Получать вопрос дня», в боте `/start` подписывает его, каждый день в 09:00 (МСК) бот присылает викторину (`sendPoll`), `/stop` удаляет подписку.
+
+1. Создайте бота в `@BotFather` (`/newbot`), токен — в `TELEGRAM_BOT_TOKEN`, username без `@` — в `NEXT_PUBLIC_TELEGRAM_BOT` (**build-arg**, как остальные `NEXT_PUBLIC_*`).
+2. Задайте `TELEGRAM_WEBHOOK_SECRET` и `CRON_TOKEN` (случайные строки) в runtime-переменных.
+3. Включите вебхук: `curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" -d url=https://prombez-game.ru/api/telegram/webhook -d secret_token=$TELEGRAM_WEBHOOK_SECRET`.
+4. Расписание: ежедневно `POST /api/telegram/daily` с `Authorization: Bearer $CRON_TOKEN` (проверка без отправки: `?dryRun=1`). Вопрос дня выбирается детерминированно по дате из области `TELEGRAM_AREA` (по умолчанию `a1`).

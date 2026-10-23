@@ -1,3 +1,4 @@
+import { TelegramSubscribe } from "@/components/TelegramSubscribe";
 import Link from "next/link";
 import { CookieBanner } from "@/components/CookieBanner";
 import { SITE_NAME, SOURCE_NAME, SOURCE_URL } from "@/lib/site";
@@ -38,6 +39,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           <Link href="/search" className="hover:text-fg">
             Поиск вопросов
           </Link>
+          <TelegramSubscribe where="footer" variant="link" />
           <span>
             Ответы и нормы:{" "}
             <a href={SOURCE_URL} className="underline hover:text-fg">

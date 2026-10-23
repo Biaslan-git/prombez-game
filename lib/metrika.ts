@@ -7,7 +7,8 @@ export type Goal =
   | "search_used"
   | "quiz_started"
   | "quiz_done"
-  | "share_click";
+  | "share_click"
+  | "telegram_click";
 
 declare global {
   interface Window {

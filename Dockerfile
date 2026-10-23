@@ -20,6 +20,8 @@ ARG NEXT_PUBLIC_RSYA_BLOCK_TRAIN=
 ARG NEXT_PUBLIC_RSYA_BLOCK_QUESTION=
 ARG NEXT_PUBLIC_RSYA_BLOCK_QUESTION_BOTTOM=
 ARG NEXT_PUBLIC_FEEDBACK_EMAIL=support@prombez-game.ru
+# Username Telegram-бота «Вопрос дня» (без @): включает кнопки подписки на сайте.
+ARG NEXT_PUBLIC_TELEGRAM_BOT=
 # Код подтверждения Яндекс Вебмастера попадает в <meta> статических страниц, поэтому нужен при сборке.
 ARG YANDEX_VERIFICATION=
 # То же для Google Search Console (мета-тег google-site-verification).

@@ -4,6 +4,9 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://prombez-ga
 export const SITE_NAME = "Промбез Game";
 export const FEEDBACK_EMAIL = process.env.NEXT_PUBLIC_FEEDBACK_EMAIL || "support@prombez-game.ru";
 
+/** Username Telegram-бота «Вопрос дня» (без @). Пусто — кнопки подписки не показываются. */
+export const TELEGRAM_BOT = (process.env.NEXT_PUBLIC_TELEGRAM_BOT ?? "").trim().replace(/^@/, "");
+
 export function absoluteUrl(path: string): string {
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }

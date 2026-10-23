@@ -69,3 +69,28 @@ export function buildPollRequest(c: PollCandidate, chatId: string, siteUrl: stri
   if (c.normRef) req.explanation = truncate(`Норма: ${c.normRef}`, POLL_LIMITS.explanation);
   return req;
 }
+
+export type BotCommand = "start" | "stop" | "question" | "help";
+export type ParsedUpdate = { chatId: string; username: string | null; command: BotCommand | "text" };
+
+/** Разбор update от Telegram: интересуют только сообщения из личных чатов. */
+export function parseUpdate(update: unknown): ParsedUpdate | null {
+  const m = (update as { message?: Record<string, unknown> } | null)?.message;
+  const chat = m?.chat as { id?: number | string; type?: string } | undefined;
+  if (!m || !chat || chat.type !== "private" || chat.id === undefined) return null;
+  const text = typeof m.text === "string" ? m.text.trim() : "";
+  const username = (m.from as { username?: string } | undefined)?.username ?? null;
+  // «/start site», «/start@my_bot» → команда start
+  const cmd = /^\/([a-z_]+)(?:@\w+)?(?:\s|$)/i.exec(text)?.[1]?.toLowerCase();
+  const known: BotCommand[] = ["start", "stop", "question", "help"];
+  const command = known.includes(cmd as BotCommand) ? (cmd as BotCommand) : "text";
+  return { chatId: String(chat.id), username, command };
+}
+
+export const BOT_TEXTS = {
+  welcome:
+    "Привет! Каждый день в 9:00 по Москве я буду присылать один вопрос из банка Ростехнадзора по промышленной безопасности: выберите ответ и сразу узнаете результат.\n\n/question — вопрос прямо сейчас\n/stop — отключить рассылку\n\nВот вопрос на сегодня 👇",
+  stopped: "Рассылка отключена, ваши данные удалены. Вернуться можно командой /start.",
+  help: "Я присылаю вопрос дня по промышленной безопасности.\n\n/question — вопрос сейчас\n/stop — отключить рассылку\n\nТренажёр с полными банками вопросов: https://prombez-game.ru",
+  noQuestion: "Пока не получается подобрать вопрос, попробуйте позже.",
+} as const;

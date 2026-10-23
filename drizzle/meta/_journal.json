@@ -8,6 +8,13 @@
       "when": 1791719121451,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792737419292,
+      "tag": "0001_cuddly_mindworm",
+      "breakpoints": true
     }
   ]
 }

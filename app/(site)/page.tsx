@@ -3,6 +3,7 @@ import { AdSlot } from "@/components/AdSlot";
 import { AreaCardReadiness } from "@/components/AreaProgressWidgets";
 import { JsonLd } from "@/components/JsonLd";
 import { SearchForm } from "@/components/SearchForm";
+import { TelegramSubscribe } from "@/components/TelegramSubscribe";
 import { getPublishedAreas } from "@/lib/data";
 import { SITE_NAME, absoluteUrl, formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
 
@@ -128,6 +129,10 @@ export default async function HomePage() {
           ))}
         </ol>
       </section>
+
+      <div className="mt-10">
+        <TelegramSubscribe where="home" />
+      </div>
 
       <section className="mt-10">
         <h2 className="mb-4 text-xl font-semibold">Частые вопросы</h2>

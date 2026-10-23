@@ -78,3 +78,29 @@ describe("buildPollRequest", () => {
     expect(req.reply_markup.inline_keyboard[0]![0]!.url).toBe("https://prombez-game.ru/a1/q/q-7?utm_source=telegram");
   });
 });
+
+import { parseUpdate } from "./telegram";
+
+describe("parseUpdate", () => {
+  const msg = (text: string, type = "private") => ({
+    message: { text, chat: { id: 42, type }, from: { username: "ivan" } },
+  });
+
+  it("разбирает команды, в том числе с аргументом и @ботом", () => {
+    expect(parseUpdate(msg("/start site"))).toEqual({ chatId: "42", username: "ivan", command: "start" });
+    expect(parseUpdate(msg("/stop@prombez_bot"))?.command).toBe("stop");
+    expect(parseUpdate(msg("/Question"))?.command).toBe("question");
+    expect(parseUpdate(msg("/help"))?.command).toBe("help");
+  });
+
+  it("обычный текст и неизвестные команды — text", () => {
+    expect(parseUpdate(msg("привет"))?.command).toBe("text");
+    expect(parseUpdate(msg("/unknown"))?.command).toBe("text");
+  });
+
+  it("игнорирует группы и не-сообщения", () => {
+    expect(parseUpdate(msg("/start", "group"))).toBeNull();
+    expect(parseUpdate({ edited_message: {} })).toBeNull();
+    expect(parseUpdate(null)).toBeNull();
+  });
+});
