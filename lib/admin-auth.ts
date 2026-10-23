@@ -13,11 +13,3 @@ export function isAuthorized(authorization: string | null | undefined, token = p
   // Разная длина — сразу отказ (timingSafeEqual требует равных длин); длина токена не секрет.
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
-
-/** Сравнение секретов за постоянное время (например, заголовок вебхука Telegram). */
-export function tokensEqual(given: string | null | undefined, expected: string | null | undefined): boolean {
-  if (!given || !expected) return false;
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}

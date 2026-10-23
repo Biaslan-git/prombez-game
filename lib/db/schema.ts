@@ -1,6 +1,5 @@
 import { sql } from "drizzle-orm";
 import {
-  bigint,
   boolean,
   customType,
   date,
@@ -77,15 +76,3 @@ export const answers = pgTable(
 export type Area = typeof areas.$inferSelect;
 export type Question = typeof questions.$inferSelect;
 export type Answer = typeof answers.$inferSelect;
-
-// Подписчики Telegram-бота «Вопрос дня». Хранится только идентификатор чата (и username, если есть): /stop удаляет строку.
-export const tgSubscribers = pgTable("tg_subscribers", {
-  chatId: bigint("chat_id", { mode: "number" }).primaryKey(),
-  username: text("username"),
-  active: boolean("active").notNull().default(true),
-  // Номер дня (по Москве), за который вопрос уже отправлен: защита от дублей.
-  lastSentDay: integer("last_sent_day"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export type TgSubscriber = typeof tgSubscribers.$inferSelect;

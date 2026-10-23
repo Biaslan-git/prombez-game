@@ -15,6 +15,13 @@
       "when": 1792737419292,
       "tag": "0001_cuddly_mindworm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792739988136,
+      "tag": "0002_smart_sheva_callister",
+      "breakpoints": true
     }
   ]
 }
