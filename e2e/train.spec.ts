@@ -44,7 +44,7 @@ test("SEO-страница вопроса работает без JS", async ({ 
   await page.getByRole("link", { name: /Кто имеет право выдавать/ }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("наряд-допуск");
   await expect(page.getByText("— правильный ответ")).toBeVisible();
-  await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(2);
+  await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1);
   await ctx.close();
 });
 

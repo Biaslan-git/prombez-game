@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdSlot } from "@/components/AdSlot";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { JsonLd } from "@/components/JsonLd";
 import { MiniQuiz } from "@/components/MiniQuiz";
 import { ShareButtons } from "@/components/ShareButtons";
 import { TelegramSubscribe } from "@/components/TelegramSubscribe";
@@ -77,29 +76,8 @@ export default async function QuestionPage({ params }: Params) {
   const main = (await getDuplicateTargets()).get(q.id);
   const url = absoluteUrl(main ? `/${main.areaSlug}/q/${main.slug}` : `/${area.slug}/q/${q.slug}`);
 
-  const qaLd = {
-    "@context": "https://schema.org",
-    "@type": "QAPage",
-    mainEntity: {
-      "@type": "Question",
-      name: truncate(q.text, 110),
-      text: hint ? `${q.text} ${hint}` : q.text,
-      answerCount: 1,
-      datePublished: q.createdAt.toISOString(),
-      dateModified: q.updatedAt.toISOString(),
-      author: { "@type": "Organization", name: "Промбез Game", url: absoluteUrl("/") },
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: correct.map((a) => a.text).join("; ") + (q.explanation ? `\n\n${q.explanation}` : ""),
-        url,
-        upvoteCount: 0,
-        datePublished: q.createdAt.toISOString(),
-        dateModified: q.updatedAt.toISOString(),
-        author: { "@type": "Organization", name: "Промбез Game", url: absoluteUrl("/") },
-      },
-    },
-  };
-
+  // Разметки QAPage нет намеренно (с 23.10.2026): с ней ответ показывался прямо в выдаче Google
+  // (684 показа расширенного результата → 0 кликов). Вернуть её стоит, только если CTR без неё не вырастет.
   return (
     <>
       <Breadcrumbs
@@ -252,7 +230,6 @@ export default async function QuestionPage({ params }: Params) {
       )}
 
       <AdSlot id="questionBottom" />
-      <JsonLd data={qaLd} />
     </>
   );
 }
