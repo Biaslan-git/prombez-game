@@ -3,22 +3,24 @@ import { api, db } from "sdk";
 import { eq } from "sdk/db";
 import { subscribers } from "../schema.js";
 import { QUESTIONS } from "../lib/questions.js";
-import { buildPoll, dayNumber, pickDailyQuestion } from "../lib/daily.js";
+import { dayNumber } from "../lib/daily.js";
+import { composeQuiz } from "../lib/question.js";
 import { TEXTS, parseCommand } from "../lib/texts.js";
 
 // random=false — вопрос дня (одинаковый для всех), true — случайный вопрос по команде /question.
 async function sendQuestion(chatId, random = false) {
-  const now = new Date();
-  const daily = pickDailyQuestion(QUESTIONS, now);
-  const q = random ? pickRandomQuestion(QUESTIONS, daily?.id) : daily;
-  if (!q) {
+  const sub = await db.select().from(subscribers).where(eq(subscribers.chatId, chatId)).get();
+  const poll = composeQuiz({ questions: QUESTIONS, chatId, now: new Date(), random, lastPos: sub?.lastPos ?? null });
+  if (!poll) {
     await api.sendMessage({ chat_id: chatId, text: TEXTS.noQuestion });
     return false;
   }
-  const sub = await db.select().from(subscribers).where(eq(subscribers.chatId, chatId)).get();
-  const poll = random
-    ? buildPoll(q, chatId, now, Math.random, sub?.lastPos ?? null)
-    : buildPoll(q, chatId, now, undefined, sub?.lastPos ?? null);
+  console.log("quiz sent", {
+    random,
+    pos: poll.correct_option_id,
+    n: poll.options.length,
+    q: poll.question.slice(0, 40),
+  });
   await api.sendPoll(poll);
   if (sub)
     await db.update(subscribers).set({ lastPos: poll.correct_option_id }).where(eq(subscribers.chatId, chatId)).run();
@@ -49,7 +51,7 @@ export default async function onMessage(message) {
       return;
     }
     case "question":
-      await sendQuestion(chatId);
+      await sendQuestion(chatId, true);
       return;
     case "stop":
       await db.delete(subscribers).where(eq(subscribers.chatId, chatId)).run();

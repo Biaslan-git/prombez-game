@@ -18,6 +18,13 @@ const config = [
     ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    // Модули бота на Telegram Serverless: необъявленные имена (например, забытый импорт) падают только на платформе,
+    // поэтому ловим их здесь.
+    files: ["bot/tgcloud/**/*.js"],
+    languageOptions: { globals: { console: "readonly", setTimeout: "readonly" } },
+    rules: { "no-undef": "error" },
+  },
 ];
 
 export default config;

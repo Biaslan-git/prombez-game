@@ -137,3 +137,41 @@ test("если верный вариант закреплён в конце, и�
   const poll = buildPoll(x, 1, new Date(), Math.random, 2);
   assert.equal(poll.correct_option_id, 2);
 });
+
+import { composeQuiz } from "../tgcloud/lib/question.js";
+
+test("/question (random) выбирает вопрос не из вопроса дня и меняет его от запроса к запросу", () => {
+  const pool = Array.from({ length: 30 }, (_, i) => q(i + 1));
+  const now = new Date("2026-10-23T06:00:00Z");
+  const daily = pickDailyQuestion(pool, now);
+  const seen = new Set();
+  for (let i = 0; i < 200; i++) {
+    const poll = composeQuiz({ questions: pool, chatId: 1, now, random: true });
+    assert.notEqual(poll.question, daily.text);
+    seen.add(poll.question);
+  }
+  assert.ok(seen.size > 15, `разных вопросов: ${seen.size}`);
+});
+
+test("вопрос дня (random=false) — один и тот же в течение суток", () => {
+  const pool = Array.from({ length: 30 }, (_, i) => q(i + 1));
+  const now = new Date("2026-10-23T06:00:00Z");
+  const a = composeQuiz({ questions: pool, chatId: 1, now });
+  const b = composeQuiz({ questions: pool, chatId: 2, now: new Date("2026-10-23T15:00:00Z") });
+  assert.equal(a.question, b.question);
+  assert.equal(composeQuiz({ questions: [], chatId: 1, now }), null);
+});
+
+test("при случайном /question позиция верного ответа разная и не повторяет прошлую", () => {
+  const pool = Array.from({ length: 30 }, (_, i) => q(i + 1));
+  const now = new Date("2026-10-23T06:00:00Z");
+  const positions = new Set();
+  let last = null;
+  for (let i = 0; i < 100; i++) {
+    const poll = composeQuiz({ questions: pool, chatId: 1, now, random: true, lastPos: last });
+    if (last !== null) assert.notEqual(poll.correct_option_id, last);
+    positions.add(poll.correct_option_id);
+    last = poll.correct_option_id;
+  }
+  assert.equal(positions.size, 3);
+});
