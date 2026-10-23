@@ -23,9 +23,19 @@ function truncate(s, max) {
   return s.length <= max ? s : s.slice(0, max - 1).trimEnd() + "…";
 }
 
-/** Запрос sendPoll: викторина с пояснением (норма) и кнопкой на страницу вопроса. */
-export function buildPoll(q, chatId, now) {
-  const answers = shuffleAnswers(q.answers, seededRng(dayNumber(now)));
+/** Случайный вопрос для команды /question (не тот, что уже выпал, если вопросов больше одного). */
+export function pickRandomQuestion(questions, excludeId, rng = Math.random) {
+  const pool = questions.length > 1 ? questions.filter((q) => q.id !== excludeId) : questions;
+  return pool.length ? pool[Math.floor(rng() * pool.length)] : null;
+}
+
+/**
+ * Запрос sendPoll: викторина с пояснением (норма) и кнопкой на страницу вопроса.
+ * Порядок вариантов для вопроса дня задаётся датой и номером вопроса (одинаков для всех подписчиков),
+ * для /question можно передать другой rng.
+ */
+export function buildPoll(q, chatId, now, rng = seededRng((Math.imul(dayNumber(now), 2654435761) + q.id) >>> 0)) {
+  const answers = shuffleAnswers(q.answers, rng);
   const poll = {
     chat_id: chatId,
     question: q.text,

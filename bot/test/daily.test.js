@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildPoll, dayNumber, pickDailyQuestion } from "../tgcloud/lib/daily.js";
+import { buildPoll, dayNumber, pickDailyQuestion, pickRandomQuestion } from "../tgcloud/lib/daily.js";
 import { parseCommand } from "../tgcloud/lib/texts.js";
 import { shuffleAnswers, seededRng } from "../tgcloud/lib/rng.js";
 import { QUESTIONS } from "../tgcloud/lib/questions.js";
@@ -79,4 +79,20 @@ test("зашитые вопросы укладываются в лимиты Tel
     assert.equal(x.answers.filter((a) => a.isCorrect).length, 1, `вопрос ${x.id}`);
     for (const a of x.answers) assert.ok(a.text.length <= 100, `вопрос ${x.id}`);
   }
+});
+
+test("/question даёт случайный вопрос, не равный вопросу дня", () => {
+  const pool = [1, 2, 3].map((i) => q(i));
+  for (let i = 0; i < 30; i++) assert.notEqual(pickRandomQuestion(pool, 2).id, 2);
+  assert.equal(pickRandomQuestion([q(5)], 5).id, 5);
+  assert.equal(pickRandomQuestion([], 1), null);
+});
+
+test("верный ответ не прилипает к одной позиции в разные дни", () => {
+  const positions = new Set();
+  for (let d = 0; d < 40; d++) {
+    const poll = buildPoll(q(7), 1, new Date(Date.UTC(2026, 9, 23 + d, 6)));
+    positions.add(poll.correct_option_id);
+  }
+  assert.equal(positions.size, 3);
 });

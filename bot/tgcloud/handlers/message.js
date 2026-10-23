@@ -6,14 +6,16 @@ import { QUESTIONS } from "../lib/questions.js";
 import { buildPoll, dayNumber, pickDailyQuestion } from "../lib/daily.js";
 import { TEXTS, parseCommand } from "../lib/texts.js";
 
-async function sendQuestion(chatId) {
+// random=false — вопрос дня (одинаковый для всех), true — случайный вопрос по команде /question.
+async function sendQuestion(chatId, random = false) {
   const now = new Date();
-  const q = pickDailyQuestion(QUESTIONS, now);
+  const daily = pickDailyQuestion(QUESTIONS, now);
+  const q = random ? pickRandomQuestion(QUESTIONS, daily?.id) : daily;
   if (!q) {
     await api.sendMessage({ chat_id: chatId, text: TEXTS.noQuestion });
     return false;
   }
-  await api.sendPoll(buildPoll(q, chatId, now));
+  await api.sendPoll(random ? buildPoll(q, chatId, now, Math.random) : buildPoll(q, chatId, now));
   return true;
 }
 
