@@ -36,8 +36,13 @@ export default async function daily() {
       continue;
     }
     try {
-      await sendWithRetry(buildPoll(q, s.chatId, now));
-      await db.update(subscribers).set({ lastSentDay: day }).where(eq(subscribers.chatId, s.chatId)).run();
+      const poll = buildPoll(q, s.chatId, now, undefined, s.lastPos ?? null);
+      await sendWithRetry(poll);
+      await db
+        .update(subscribers)
+        .set({ lastSentDay: day, lastPos: poll.correct_option_id })
+        .where(eq(subscribers.chatId, s.chatId))
+        .run();
       report.sent++;
     } catch (e) {
       if (isGone(e)) {

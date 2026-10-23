@@ -96,3 +96,44 @@ test("верный ответ не прилипает к одной позици
   }
   assert.equal(positions.size, 3);
 });
+
+test("верный ответ не повторяет позицию предыдущей викторины", () => {
+  const now = new Date("2026-10-23T06:00:00Z");
+  for (let avoid = 0; avoid < 3; avoid++) {
+    for (let i = 0; i < 200; i++) {
+      const poll = buildPoll(q(i + 1), 1, now, Math.random, avoid);
+      assert.notEqual(poll.correct_option_id, avoid);
+      assert.equal(poll.options[poll.correct_option_id], "Второй");
+      assert.equal(poll.options.length, 3);
+    }
+  }
+});
+
+test("«Все перечисленное» остаётся последним и при избегании позиции", () => {
+  const x = q(9, {
+    answers: [
+      { text: "А", isCorrect: false },
+      { text: "Б", isCorrect: true },
+      { text: "В", isCorrect: false },
+      { text: "Все перечисленное.", isCorrect: false },
+    ],
+  });
+  for (let i = 0; i < 100; i++) {
+    const poll = buildPoll(x, 1, new Date(), Math.random, 1);
+    assert.equal(poll.options.at(-1), "Все перечисленное.");
+    assert.equal(poll.options[poll.correct_option_id], "Б");
+    assert.notEqual(poll.correct_option_id, 1);
+  }
+});
+
+test("если верный вариант закреплён в конце, избегание позиции его не двигает", () => {
+  const x = q(9, {
+    answers: [
+      { text: "А", isCorrect: false },
+      { text: "Б", isCorrect: false },
+      { text: "Все перечисленное.", isCorrect: true },
+    ],
+  });
+  const poll = buildPoll(x, 1, new Date(), Math.random, 2);
+  assert.equal(poll.correct_option_id, 2);
+});

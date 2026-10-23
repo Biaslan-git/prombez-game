@@ -7,5 +7,7 @@ export const subscribers = table("subscribers", {
   active: boolean("active").notNull().default(true),
   // Номер дня (по Москве), за который вопрос уже отправлен: защита от дублей.
   lastSentDay: integer("last_sent_day"),
+  // Позиция верного ответа в последней викторине: следующая будет на другой позиции.
+  lastPos: integer("last_pos"),
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 });

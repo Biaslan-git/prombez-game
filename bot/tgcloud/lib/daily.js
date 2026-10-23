@@ -1,4 +1,4 @@
-import { seededRng, shuffleAnswers } from "./rng.js";
+import { isPinnedLast, seededRng, shuffleAnswers } from "./rng.js";
 
 export const SITE_URL = "https://prombez-game.ru";
 
@@ -30,12 +30,33 @@ export function pickRandomQuestion(questions, excludeId, rng = Math.random) {
 }
 
 /**
+ * Верный вариант не должен подряд попадать на одну позицию: если он стоит там же, где в прошлой викторине
+ * подписчика (avoidPos), меняем его местами со случайным вариантом, который не прибит к концу.
+ */
+function moveCorrectFrom(answers, avoidPos, rng) {
+  const idx = answers.findIndex((a) => a.isCorrect);
+  if (avoidPos == null || idx !== avoidPos || isPinnedLast(answers[idx])) return answers;
+  const candidates = answers.map((_, i) => i).filter((i) => i !== idx && !isPinnedLast(answers[i]));
+  if (!candidates.length) return answers;
+  const j = candidates[Math.floor(rng() * candidates.length)];
+  const out = [...answers];
+  [out[idx], out[j]] = [out[j], out[idx]];
+  return out;
+}
+
+/**
  * Запрос sendPoll: викторина с пояснением (норма) и кнопкой на страницу вопроса.
  * Порядок вариантов для вопроса дня задаётся датой и номером вопроса (одинаков для всех подписчиков),
- * для /question можно передать другой rng.
+ * для /question можно передать другой rng. avoidPos — позиция верного ответа в прошлой викторине подписчика.
  */
-export function buildPoll(q, chatId, now, rng = seededRng((Math.imul(dayNumber(now), 2654435761) + q.id) >>> 0)) {
-  const answers = shuffleAnswers(q.answers, rng);
+export function buildPoll(
+  q,
+  chatId,
+  now,
+  rng = seededRng((Math.imul(dayNumber(now), 2654435761) + q.id) >>> 0),
+  avoidPos = null,
+) {
+  const answers = moveCorrectFrom(shuffleAnswers(q.answers, rng), avoidPos, rng);
   const poll = {
     chat_id: chatId,
     question: q.text,

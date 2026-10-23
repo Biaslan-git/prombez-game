@@ -22,8 +22,10 @@ export function shuffle(items, rng = Math.random) {
 const PINNED_LAST =
   /^(вс(е|еми|ей|ех)|ни один|ничего|никакие)\s+(из\s+)?(перечисленн|вышеперечисленн|указанн|приведенн)/i;
 
+export const isPinnedLast = (a) => PINNED_LAST.test(a.text.trim());
+
 export function shuffleAnswers(answers, rng = Math.random) {
-  const pinned = answers.filter((a) => PINNED_LAST.test(a.text.trim()));
-  const free = answers.filter((a) => !PINNED_LAST.test(a.text.trim()));
+  const pinned = answers.filter(isPinnedLast);
+  const free = answers.filter((a) => !isPinnedLast(a));
   return [...shuffle(free, rng), ...pinned];
 }

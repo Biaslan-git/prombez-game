@@ -15,7 +15,13 @@ async function sendQuestion(chatId, random = false) {
     await api.sendMessage({ chat_id: chatId, text: TEXTS.noQuestion });
     return false;
   }
-  await api.sendPoll(random ? buildPoll(q, chatId, now, Math.random) : buildPoll(q, chatId, now));
+  const sub = await db.select().from(subscribers).where(eq(subscribers.chatId, chatId)).get();
+  const poll = random
+    ? buildPoll(q, chatId, now, Math.random, sub?.lastPos ?? null)
+    : buildPoll(q, chatId, now, undefined, sub?.lastPos ?? null);
+  await api.sendPoll(poll);
+  if (sub)
+    await db.update(subscribers).set({ lastPos: poll.correct_option_id }).where(eq(subscribers.chatId, chatId)).run();
   return true;
 }
 
