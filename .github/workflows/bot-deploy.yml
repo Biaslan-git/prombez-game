@@ -41,8 +41,10 @@ jobs:
       - name: Выложить код и обновить схему базы
         working-directory: bot
         # --force: в чистом checkout нет состояния CLI (.tgcloud/), а источник правды — репозиторий.
+        # @tgcloud/cli 0.2.0 после успешного push с изменениями падает на записи локального снапшота
+        # (ERR_INVALID_ARG_TYPE); повторный push видит, что всё уже выложено, и проходит.
         run: |
-          npx tgcloud push --force
+          npx tgcloud push --force || npx tgcloud push --force
           npx tgcloud migrate --safe
           npx tgcloud webhook sync
       - name: Загрузить вопросы в базу бота
