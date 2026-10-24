@@ -1,6 +1,7 @@
 // Кнопки меню /settings: выбор сфер и областей для вопроса дня.
 import { api } from "sdk";
 import { applyCallback, courseMenu, describeSelection, mainMenu } from "../lib/settings.js";
+import { sendTodayIfDue } from "../lib/send.js";
 import { areasOf, getSubscriber, saveAreas } from "../lib/subscriber.js";
 import { TEXTS } from "../lib/texts.js";
 
@@ -37,4 +38,6 @@ export default async function onCallbackQuery(cq) {
   } catch (e) {
     if (!(e.code === 400 && /not modified/i.test(e.description ?? ""))) throw e;
   }
+  // После первого выбора областей (при /start) сразу присылаем вопрос дня.
+  if (view.menu === "done" && list.length) await sendTodayIfDue(chatId);
 }

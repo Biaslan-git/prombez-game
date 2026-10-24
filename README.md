@@ -133,7 +133,7 @@ curl -X POST "$URL?area=a1&publish=1" -H "Authorization: Bearer $T" --data-binar
 
 ## Telegram-бот «Вопрос дня»
 
-Человек нажимает на сайте «Получать вопрос дня», в боте `/start` подписывает его, каждый день в 09:00 (МСК) бот присылает викторину (`sendPoll`) из выбранных подписчиком областей, `/settings` — выбор сфер и областей, `/stop` удаляет подписку.
+Человек нажимает на сайте «Получать вопрос дня», в боте `/start` подписывает его (новому подписчику сначала показывает меню выбора, первый вопрос — после «Готово»), каждый день в 09:00 (МСК) бот присылает викторину (`sendPoll`) из выбранных подписчиком областей, `/settings` — выбор сфер и областей, `/stop` удаляет подписку.
 Бот работает на [Telegram Serverless](https://core.telegram.org/bots/serverless): код и база (SQLite) живут у Telegram, серверу сайта до Telegram ходить не нужно. Проект лежит в `bot/`.
 
 - `bot/tgcloud/handlers/message.js` — команды `/start`, `/settings`, `/question`, `/stop`, `/help`; `handlers/callback_query.js` — кнопки меню `/settings`.
