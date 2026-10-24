@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickCanonicals, type DupItem } from "./canonical";
+import { duplicateKey, pickCanonicals, type DupItem } from "./canonical";
 
 const item = (over: Partial<DupItem>): DupItem => ({
   id: 1,
@@ -50,5 +50,13 @@ describe("pickCanonicals", () => {
     const a = item({ id: 1, number: 5, slug: "five" });
     const b = item({ id: 2, number: 2, slug: "two" });
     expect(pickCanonicals([a, b]).get(1)).toEqual({ areaSlug: "a1", slug: "two" });
+  });
+});
+
+describe("duplicateKey with images", () => {
+  it("does not glue picture questions with the same text but different pictures", () => {
+    const base = { text: "Вопрос по рисунку", correct: ["Рисунок 2"] };
+    expect(duplicateKey({ ...base, imageHash: "a" })).not.toBe(duplicateKey({ ...base, imageHash: "b" }));
+    expect(duplicateKey({ ...base, imageHash: "a" })).toBe(duplicateKey({ ...base, imageHash: "a" }));
   });
 });

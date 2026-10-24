@@ -17,9 +17,15 @@
 - `lib/data.ts` — все запросы к БД для страниц. Импорт банков: `lib/import.ts` (разбор и проверка), `lib/import-db.ts` (запись в БД),
   `scripts/import-questions.ts` (CLI) и `POST /api/admin/import` (по токену `IMPORT_TOKEN`). `scripts/parsers/` — конвертеры источников в JSON.
 - Параметры экзамена (число вопросов, время, порог) — в таблице `areas`, не в коде.
+- Сферы (промбез, электробез, охрана труда…) — `lib/courses.ts`, у области `course_slug`, `section_title` и `authority`
+  (чей банк; null — учебный тест, тексты страниц тогда не упоминают Ростехнадзор). Банк prombez24 — README, «Банк prombez24».
+- Типы вопросов (`lib/question-kind.ts`): choice, order (расставить по порядку), match (сопоставить «левое --- правое»).
+  В order/match все варианты верные, ответ — последовательность нажатий; проверка — `isAnswerCorrect` в `lib/exam`.
+- Повторный импорт с `source_id` узнаёт вопросы по id источника, затем по тексту (`lib/import-match.ts`): номер и slug
+  узнанного вопроса не меняются.
 - Тренировка/экзамен/ошибки — клиентские компоненты (`components/Trainer.tsx`, `ExamRunner.tsx`), `noindex`.
   SEO-страницы вопросов — серверные, ISR, работают без JS.
-- SEO: на страницах вопросов нет разметки QAPage (ответ в выдаче съедал клики, см. комментарий в `q/[slug]/page.tsx`); остаются BreadcrumbList и FAQ на главной. Одинаковые вопросы разных областей склеиваются через canonical (`lib/canonical.ts`, главная — область с первым кодом, А.1 раньше Б), копии не попадают в sitemap. Темы (`lib/topics.ts`) — страницы `/[area]/t/[topic]`, считаются по ключевым словам. После импорта/деплоя: `npm run indexnow` (IndexNow для Яндекса и Bing).
+- SEO: на страницах вопросов нет разметки QAPage (ответ в выдаче съедал клики, см. комментарий в `q/[slug]/page.tsx`); остаются BreadcrumbList и FAQ на главной. Одинаковые вопросы разных областей склеиваются через canonical (`lib/canonical.ts`, главная — область с первым кодом, А.1 раньше Б), копии не попадают в sitemap (`/sitemap.xml` — индекс, части в `/sitemaps/*`). Темы (`lib/topics.ts`) — страницы `/[area]/t/[topic]`, считаются по ключевым словам. После импорта/деплоя: `npm run indexnow` (IndexNow для Яндекса и Bing).
 - Telegram-бот «Вопрос дня» — отдельный проект `bot/` на Telegram Serverless (не на нашем сервере: он не достаёт до Telegram). После импорта банка: `node scripts/build-bot-questions.mjs && cd bot && npx tgcloud push`. Подробности — README, раздел «Telegram-бот».
 - Реклама: только через `<AdSlot id=… />`, никогда в экзамене и не между вопросом и ответом.
 

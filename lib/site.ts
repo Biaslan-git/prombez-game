@@ -65,5 +65,8 @@ export function pageMetadata(o: {
   };
 }
 
-export const SOURCE_URL = "https://xn----8sbbilafpyxcf8a.xn--p1ai/";
-export const SOURCE_NAME = "блог-инженера.рф";
+/** Откуда взяты варианты ответов и отметки правильных (банки до октября 2026 года — с блога инженера). */
+export const SOURCES = [
+  { name: "prombez24.com", url: "https://prombez24.com/" },
+  { name: "блог-инженера.рф", url: "https://xn----8sbbilafpyxcf8a.xn--p1ai/" },
+] as const;

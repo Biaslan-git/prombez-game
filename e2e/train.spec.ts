@@ -1,10 +1,15 @@
 import { expect, test } from "@playwright/test";
 
-test("главная → область → ответ → подсветка и объяснение", async ({ page }) => {
+test("главная → сфера → область → ответ → подсветка и объяснение", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Подготовка к аттестации");
 
-  // С главной до первого вопроса — один клик.
+  // Главная → карточка сферы → «Начать тренировку» на карточке области.
+  await page
+    .getByRole("link", { name: /Промышленная безопасность/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/kurs\/prombez$/);
   await page.getByRole("link", { name: "Начать тренировку" }).first().click();
   await expect(page).toHaveURL(/\/[a-z0-9]+\/train$/);
 
@@ -56,7 +61,11 @@ test("мини-тест под вопросом: 5 ответов → итог �
   await page.getByRole("button", { name: "Начать мини-тест" }).click();
   const quiz = page.getByTestId("mini-quiz");
   for (let i = 0; i < 5; i++) {
-    await quiz.locator("[role=radio], [role=checkbox]").first().click();
+    // Вопрос на порядок или соответствие: варианты нажимаются все, по очереди.
+    const sequence = quiz.locator("button[aria-pressed]");
+    const n = await sequence.count();
+    if (n > 0) for (let j = 0; j < n; j++) await sequence.nth(j).click();
+    else await quiz.locator("[role=radio], [role=checkbox]").first().click();
     const submit = quiz.getByRole("button", { name: "Ответить" });
     if (await submit.isVisible()) await submit.click();
     await expect(quiz.getByTestId("quiz-verdict")).toBeVisible();
@@ -67,4 +76,11 @@ test("мини-тест под вопросом: 5 ответов → итог �
   // Ответы мини-теста попали в общий прогресс области.
   const stored = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("pg:v1:progress:")));
   expect(stored.length).toBe(1);
+});
+
+test("вопрос на порядок: страница с правильным порядком", async ({ page }) => {
+  await page.goto("/a1");
+  await page.getByRole("link", { name: /шаги тестовой процедуры допуска/ }).click();
+  await expect(page.getByText("Правильный порядок:")).toBeVisible();
+  await expect(page.getByRole("listitem").filter({ hasText: "Получить тестовый наряд" })).toBeVisible();
 });

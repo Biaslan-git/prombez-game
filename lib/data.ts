@@ -1,14 +1,17 @@
 import { and, asc, count, desc, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
 import { cache } from "react";
 import { getDb } from "./db/client";
-import { answers, areas, questions, type Area } from "./db/schema";
+import { answers, areas, questionImages, questions, type Area } from "./db/schema";
 import { HL_END, HL_START } from "./highlight";
 import { pickCanonicals, type CanonicalTarget } from "./canonical";
 import { getTopic, summarizeTopics, type TopicSummary } from "./topics";
+import { courseOrder } from "./courses";
+import type { QuestionKind } from "./question-kind";
 
 export type AreaSummary = Area & { questionCount: number };
 
-export type ClientAnswer = { id: number; text: string; isCorrect: boolean };
+/** position — место в банке; в вопросах на порядок и соответствие это правильный порядок. */
+export type ClientAnswer = { id: number; text: string; isCorrect: boolean; position: number };
 /** Вопрос для тренировки и экзамена (передаётся в клиентские компоненты). */
 export type ClientQuestion = {
   id: number;
@@ -17,9 +20,17 @@ export type ClientQuestion = {
   text: string;
   answers: ClientAnswer[];
   multi: boolean;
+  kind: QuestionKind;
+  /** Адрес картинки к вопросу или null. */
+  image: string | null;
   explanation: string | null; // только проверенные объяснения
   normRef: string | null;
 };
+
+/** Адрес картинки вопроса; хэш в query сбрасывает кэш браузера, когда картинка меняется. */
+export function questionImageUrl(questionId: number, hash: string | null): string | null {
+  return hash ? `/qimg/${questionId}?v=${hash.slice(0, 10)}` : null;
+}
 
 export const getPublishedAreas = cache(async (): Promise<AreaSummary[]> => {
   const db = getDb();
@@ -30,8 +41,27 @@ export const getPublishedAreas = cache(async (): Promise<AreaSummary[]> => {
     .where(eq(areas.isPublished, true))
     .groupBy(areas.id)
     .orderBy(asc(areas.sortOrder), asc(areas.code));
-  return rows.map((r) => ({ ...r.area, questionCount: r.questionCount }));
+  return rows
+    .map((r) => ({ ...r.area, questionCount: r.questionCount }))
+    .sort((a, b) => courseOrder(a.courseSlug) - courseOrder(b.courseSlug));
 });
+
+/** Опубликованные области сферы. */
+export async function getCourseAreas(courseSlug: string): Promise<AreaSummary[]> {
+  return (await getPublishedAreas()).filter((a) => (a.courseSlug || "prombez") === courseSlug);
+}
+
+/** Картинка вопроса опубликованной области. */
+export async function getQuestionImage(questionId: number) {
+  const [row] = await getDb()
+    .select({ mime: questionImages.mime, data: questionImages.data })
+    .from(questionImages)
+    .innerJoin(questions, eq(questions.id, questionImages.questionId))
+    .innerJoin(areas, eq(areas.id, questions.areaId))
+    .where(and(eq(questionImages.questionId, questionId), eq(areas.isPublished, true)))
+    .limit(1);
+  return row ?? null;
+}
 
 export const getArea = cache(async (slug: string): Promise<AreaSummary | null> => {
   const all = await getPublishedAreas();
@@ -66,12 +96,20 @@ async function loadAreaQuestions(areaId: number): Promise<ClientQuestion[]> {
       explanation: questions.explanation,
       explanationVerified: questions.explanationVerified,
       normRef: questions.normRef,
+      kind: questions.kind,
+      imageHash: questions.imageHash,
     })
     .from(questions)
     .where(and(eq(questions.areaId, areaId), eq(questions.isActive, true)))
     .orderBy(asc(questions.number));
   const ans = await db
-    .select({ id: answers.id, questionId: answers.questionId, text: answers.text, isCorrect: answers.isCorrect })
+    .select({
+      id: answers.id,
+      questionId: answers.questionId,
+      text: answers.text,
+      isCorrect: answers.isCorrect,
+      position: answers.position,
+    })
     .from(answers)
     .innerJoin(questions, eq(questions.id, answers.questionId))
     .where(and(eq(questions.areaId, areaId), eq(questions.isActive, true)))
@@ -79,18 +117,21 @@ async function loadAreaQuestions(areaId: number): Promise<ClientQuestion[]> {
   const byQ = new Map<number, ClientAnswer[]>();
   for (const a of ans) {
     const list = byQ.get(a.questionId) ?? [];
-    list.push({ id: a.id, text: a.text, isCorrect: a.isCorrect });
+    list.push({ id: a.id, text: a.text, isCorrect: a.isCorrect, position: a.position });
     byQ.set(a.questionId, list);
   }
   return qs.map((q) => {
     const list = byQ.get(q.id) ?? [];
+    const kind = q.kind as QuestionKind;
     return {
       id: q.id,
       number: q.number,
       slug: q.slug,
       text: q.text,
       answers: list,
-      multi: list.filter((a) => a.isCorrect).length > 1,
+      multi: kind === "choice" && list.filter((a) => a.isCorrect).length > 1,
+      kind,
+      image: questionImageUrl(q.id, q.imageHash),
       explanation: q.explanationVerified ? q.explanation : null,
       normRef: q.normRef,
     };
@@ -135,9 +176,11 @@ export type QuestionPageData = {
   isActive: boolean;
   explanation: string | null;
   normRef: string | null;
+  kind: QuestionKind;
+  image: string | null;
   createdAt: Date;
   updatedAt: Date;
-  answers: { id: number; text: string; isCorrect: boolean }[];
+  answers: ClientAnswer[];
   prev: { slug: string; number: number } | null;
   next: { slug: string; number: number } | null;
 };
@@ -152,7 +195,7 @@ export const getQuestionPage = cache(async (areaId: number, slug: string): Promi
   if (!q) return null;
   const [ans, [prev], [next]] = await Promise.all([
     db
-      .select({ id: answers.id, text: answers.text, isCorrect: answers.isCorrect })
+      .select({ id: answers.id, text: answers.text, isCorrect: answers.isCorrect, position: answers.position })
       .from(answers)
       .where(eq(answers.questionId, q.id))
       .orderBy(asc(answers.position)),
@@ -177,6 +220,8 @@ export const getQuestionPage = cache(async (areaId: number, slug: string): Promi
     isActive: q.isActive,
     explanation: q.explanationVerified ? q.explanation : null,
     normRef: q.normRef,
+    kind: q.kind as QuestionKind,
+    image: questionImageUrl(q.id, q.imageHash),
     createdAt: q.createdAt,
     updatedAt: q.updatedAt,
     answers: ans,
@@ -296,6 +341,7 @@ export function getDuplicateTargets(): Promise<Map<number, CanonicalTarget>> {
           number: questions.number,
           slug: questions.slug,
           text: questions.text,
+          imageHash: questions.imageHash,
           areaSlug: areas.slug,
           areaCode: areas.code,
         })

@@ -41,22 +41,27 @@ async function main() {
   const { area: a, questions: incoming } = parsed;
   const bankVersion = values.version ?? a.bank_version ?? "";
 
-  if (values["dry-run"]) {
+  const dryRun = values["dry-run"] ?? false;
+  if (dryRun && !process.env.DATABASE_URL) {
     console.log(`Проверка пройдена: область ${a.code}, вопросов ${incoming.length}. В БД ничего не записано.`);
     return;
   }
 
   const db = getDb();
-  const report = await runImport(db, parsed, { slug, version: bankVersion, publish: values.publish ?? false });
+  const report = await runImport(db, parsed, { slug, version: bankVersion, publish: values.publish ?? false, dryRun });
 
-  console.log(`Область ${a.code} (${slug}), версия банка «${bankVersion}»`);
+  console.log(
+    `Область ${a.code} (${slug}), версия банка «${bankVersion}»${dryRun ? " — пробный прогон, в БД ничего не записано" : ""}`,
+  );
+  console.log(`  узнано по id:    ${report.matchedBySource}`);
+  console.log(`  узнано по тексту: ${report.matchedByText}`);
   console.log(`  добавлено:       ${report.added}`);
   console.log(`  обновлено:       ${report.updated}`);
   console.log(`  без изменений:   ${report.unchanged}`);
   console.log(`  возвращено:      ${report.reactivated}`);
   console.log(`  деактивировано:  ${report.deactivated}`);
 
-  await revalidate();
+  if (!dryRun) await revalidate();
 }
 
 // Сброс ISR-кэша на работающем сайте, если заданы адрес и секрет.

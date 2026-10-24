@@ -1,5 +1,8 @@
-export type ExamAnswer = { id: number; text: string; isCorrect: boolean };
-export type ExamQuestion = { id: number; number: number; text: string; answers: ExamAnswer[] };
+import { isSequenceCorrect, isSequenceKind } from "../question-kind";
+
+/** position — место варианта в банке; в вопросах на порядок и соответствие это правильный порядок. */
+export type ExamAnswer = { id: number; text: string; isCorrect: boolean; position?: number };
+export type ExamQuestion = { id: number; number: number; text: string; answers: ExamAnswer[]; kind?: string };
 
 export type Ticket<Q extends ExamQuestion = ExamQuestion> = {
   questions: Q[];
@@ -78,6 +81,7 @@ export function generateTicket<Q extends ExamQuestion>(
 
 export function isAnswerCorrect(q: ExamQuestion, selected: readonly number[] | undefined): boolean {
   if (!selected || selected.length === 0) return false;
+  if (isSequenceKind(q.kind)) return isSequenceCorrect(q.kind, q.answers, selected);
   const correct = q.answers.filter((a) => a.isCorrect).map((a) => a.id);
   const chosen = new Set(selected);
   return chosen.size === correct.length && correct.every((id) => chosen.has(id));

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnswerList, Explanation } from "@/components/AnswerList";
+import { AnswerList, Explanation, QuestionImage, kindHint, toggleChoice } from "@/components/AnswerList";
 import { ShareButtons } from "@/components/ShareButtons";
 import { useAreaProgress } from "@/components/useAreaProgress";
 import { useAnswerHotkeys } from "@/components/useHotkeys";
@@ -158,13 +158,7 @@ export function ExamRunner({ area, questions, config }: Props) {
   function choose(answerId: number) {
     if (!q) return;
     setResponses((r) => {
-      const cur = r[q.id] ?? [];
-      const next = q.multi
-        ? cur.includes(answerId)
-          ? cur.filter((x) => x !== answerId)
-          : [...cur, answerId]
-        : [answerId];
-      return { ...r, [q.id]: next };
+      return { ...r, [q.id]: toggleChoice(q, r[q.id] ?? [], answerId) };
     });
   }
 
@@ -268,10 +262,18 @@ export function ExamRunner({ area, questions, config }: Props) {
 
       <div className="mb-2 text-sm text-muted">
         Вопрос {index + 1} из {ticket.questions.length}
-        {q.multi && " · несколько правильных ответов"}
+        {kindHint(q) && ` · ${kindHint(q)}`}
       </div>
       <h1 className="mb-5 text-lg font-semibold leading-snug sm:text-xl">{q.text}</h1>
-      <AnswerList answers={q.answers} multi={q.multi} selected={selected} revealed={false} onChoose={choose} />
+      <QuestionImage src={q.image} />
+      <AnswerList
+        answers={q.answers}
+        multi={q.multi}
+        kind={q.kind}
+        selected={selected}
+        revealed={false}
+        onChoose={choose}
+      />
 
       <div className="fixed inset-x-0 bottom-[var(--cookie-h,0px)] z-30 flex gap-2 border-t border-line bg-surface/95 p-3 backdrop-blur sm:static sm:mt-5 sm:border-0 sm:bg-transparent sm:p-0">
         <button
@@ -381,7 +383,15 @@ function ExamResultView({
                     {selected.length === 0 && " · без ответа"}
                   </p>
                   <p className="mb-3 font-semibold">{q.text}</p>
-                  <AnswerList answers={q.answers} multi={q.multi} selected={selected} revealed onChoose={() => {}} />
+                  <QuestionImage src={q.image} />
+                  <AnswerList
+                    answers={q.answers}
+                    multi={q.multi}
+                    kind={q.kind}
+                    selected={selected}
+                    revealed
+                    onChoose={() => {}}
+                  />
                   <Explanation explanation={q.explanation} normRef={q.normRef} />
                 </li>
               );

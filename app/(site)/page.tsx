@@ -1,19 +1,19 @@
 import Link from "next/link";
 import { AdSlot } from "@/components/AdSlot";
-import { AreaCardReadiness } from "@/components/AreaProgressWidgets";
 import { JsonLd } from "@/components/JsonLd";
 import { SearchForm } from "@/components/SearchForm";
 import { TelegramSubscribe } from "@/components/TelegramSubscribe";
+import { COURSES, courseOf, groupBySection } from "@/lib/courses";
 import { getPublishedAreas } from "@/lib/data";
-import { SITE_NAME, absoluteUrl, formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
+import { SITE_NAME, absoluteUrl, pageMetadata, pluralRu } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = pageMetadata({
-  title: `Тесты по промбезопасности Ростехнадзора ${new Date().getFullYear()} — тренажёр с ответами`,
+  title: `Тесты по промбезопасности, электробезопасности и охране труда ${new Date().getFullYear()} — тренажёр с ответами`,
   absoluteTitle: true,
   description:
-    "Бесплатный тренажёр: вопросы Ростехнадзора с ответами по промышленной безопасности. Тренировка, пробный экзамен как в ЕПТ, работа над ошибками. Без регистрации.",
+    "Бесплатный тренажёр: вопросы Ростехнадзора с ответами по промышленной, энергетической и электробезопасности, тесты по охране труда, пожарной безопасности и другим направлениям. Тренировка, пробный экзамен, работа над ошибками. Без регистрации.",
   path: "/",
 });
 
@@ -24,7 +24,7 @@ const FAQ = [
   },
   {
     q: "Это настоящие вопросы экзамена?",
-    a: "Тренажёр построен на открытых банках вопросов Ростехнадзора. Дата актуальности банка указана на карточке каждой области.",
+    a: "По промышленной, энергетической и электробезопасности — да: тренажёр построен на открытых банках вопросов Ростехнадзора, по охране труда в ЕИСОТ — на вопросах Минтруда. Тесты по остальным направлениям учебные. Дата актуальности банка указана на странице каждой области.",
   },
   {
     q: "Как устроен пробный экзамен?",
@@ -43,6 +43,10 @@ const FAQ = [
     a: "А.1 — основы промышленной безопасности, общие требования, которые нужны всем. Области Б — специальные требования по отраслям и видам объектов; их коды начинаются с Б.",
   },
   {
+    q: "Какие направления есть кроме промбезопасности?",
+    a: "Энергетическая и электробезопасность (II–V группы), гидротехнические сооружения, охрана труда (ЕИСОТ, программы А, Б, В, первая помощь, СИЗ, работы на высоте), пожарная, экологическая, радиационная, информационная и антитеррористическая безопасность, ГО и ЧС, безопасность дорожного движения, эксперты СОУТ и тесты для рабочих профессий.",
+  },
+  {
     q: "Что такое интервальное повторение?",
     a: "Способ запоминания: вопрос, на который вы ответили верно, показывается всё реже, а ошибка возвращается быстро. Так материал закрепляется надолго, а время тратится на то, что вы ещё не знаете.",
   },
@@ -54,6 +58,10 @@ const FAQ = [
 
 export default async function HomePage() {
   const areas = await getPublishedAreas();
+  const courses = COURSES.map((course) => {
+    const items = areas.filter((a) => courseOf(a.courseSlug).slug === course.slug);
+    return { course, items, questions: items.reduce((n, a) => n + a.questionCount, 0) };
+  }).filter((c) => c.items.length > 0);
   const faqLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -80,38 +88,75 @@ export default async function HomePage() {
   return (
     <>
       <h1 className="text-2xl font-bold leading-tight sm:text-3xl">
-        Подготовка к аттестации по промбезопасности. Бесплатно, без регистрации
+        Подготовка к аттестации по промбезопасности, электробезопасности и охране труда. Бесплатно, без регистрации
       </h1>
       <div className="mt-4">
         <SearchForm placeholder="Найдите вопрос по тексту" />
       </div>
 
-      <section className="mt-6" aria-label="Области аттестации">
-        {areas.length === 0 ? (
-          <p className="text-muted">Области аттестации скоро появятся.</p>
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {areas.map((a) => (
-              <li key={a.id} className="flex flex-col rounded-2xl border border-line bg-surface p-4">
-                <Link href={`/${a.slug}`} className="group">
-                  <span className="inline-block rounded-md bg-surface-2 px-2 py-0.5 text-sm font-semibold">
-                    {a.code}
-                  </span>
-                  <h2 className="mt-2 font-semibold leading-snug group-hover:underline">{a.title}</h2>
-                </Link>
-                <p className="mt-1 text-sm text-muted">
-                  {a.questionCount} {pluralRu(a.questionCount, "вопрос", "вопроса", "вопросов")}
-                  {formatDateRu(a.bankUpdatedAt) && ` · База актуальна на ${formatDateRu(a.bankUpdatedAt)}`}
-                </p>
-                <AreaCardReadiness slug={a.slug} total={a.questionCount} />
-                <Link href={`/${a.slug}/train`} className="btn-primary mt-4 w-full">
-                  Начать тренировку
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {areas.length === 0 ? (
+        <p className="mt-6 text-muted">Области аттестации скоро появятся.</p>
+      ) : (
+        <>
+          <section className="mt-6" aria-labelledby="courses-h">
+            <h2 id="courses-h" className="mb-3 text-xl font-semibold">
+              Направления
+            </h2>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {courses.map(({ course, items, questions }) => (
+                <li key={course.slug}>
+                  <Link
+                    href={`/kurs/${course.slug}`}
+                    className="group flex h-full flex-col rounded-2xl border border-line bg-surface p-4 hover:border-brand/60"
+                  >
+                    <span className="font-semibold leading-snug group-hover:underline">{course.title}</span>
+                    <span className="mt-1 text-sm text-muted">{course.description}</span>
+                    <span className="mt-2 text-sm">
+                      {items.length} {pluralRu(items.length, "тест", "теста", "тестов")} · {questions}{" "}
+                      {pluralRu(questions, "вопрос", "вопроса", "вопросов")}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="mt-10" aria-labelledby="all-h">
+            <h2 id="all-h" className="mb-3 text-xl font-semibold">
+              Все тесты
+            </h2>
+            <div className="space-y-2">
+              {courses.map(({ course, items }, i) => (
+                <details key={course.slug} open={i === 0} className="rounded-2xl border border-line bg-surface">
+                  <summary className="cursor-pointer px-4 py-3 font-medium">
+                    {course.title} <span className="text-muted">· {items.length}</span>
+                  </summary>
+                  <div className="border-t border-line px-4 pb-3">
+                    {groupBySection(items).map((g, j) => (
+                      <div key={j}>
+                        {g.section && g.items.length > 1 && (
+                          <h3 className="mt-3 text-sm font-semibold text-muted">{g.section}</h3>
+                        )}
+                        <ul>
+                          {g.items.map((a) => (
+                            <li key={a.id}>
+                              <Link href={`/${a.slug}`} className="flex gap-3 py-1.5 hover:underline">
+                                <span className="w-16 shrink-0 font-semibold tabular-nums">{a.code}</span>
+                                <span className="flex-1">{a.title}</span>
+                                <span className="shrink-0 text-sm text-muted tabular-nums">{a.questionCount}</span>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
 
       <section className="mt-10">
         <h2 className="mb-4 text-xl font-semibold">Как это работает</h2>

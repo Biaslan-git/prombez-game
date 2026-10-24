@@ -5,6 +5,7 @@ import { AdSlot } from "@/components/AdSlot";
 import { AreaDashboard } from "@/components/AreaProgressWidgets";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { getArea, getAreaQuestionList, getAreaTopics, getPublishedAreas, safeStaticParams } from "@/lib/data";
+import { courseOf } from "@/lib/courses";
 import { formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
 import { truncate } from "@/lib/text";
 
@@ -19,7 +20,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const area = await getArea((await params).area);
   if (!area) return {};
-  const title = `${area.code} ${area.title} — вопросы и ответы Ростехнадзора`;
+  const title = `${area.code} ${area.title} — вопросы и ответы${area.authority ? ` ${area.authority}` : ""}`;
   return pageMetadata({
     title,
     ogTitle: title,
@@ -41,28 +42,33 @@ export default async function AreaPage({ params }: Params) {
   const chunks: (typeof list)[] = [];
   for (let i = 0; i < list.length; i += CHUNK) chunks.push(list.slice(i, i + CHUNK));
   const updated = formatDateRu(area.bankUpdatedAt);
+  const course = courseOf(area.courseSlug);
+  const count = `${area.questionCount} ${pluralRu(area.questionCount, "вопрос", "вопроса", "вопросов")}`;
 
   return (
     <>
       <Breadcrumbs
         items={[
           { name: "Главная", href: "/" },
+          { name: course.title, href: `/kurs/${course.slug}` },
           { name: area.code, href: `/${area.slug}` },
         ]}
       />
       <h1 className="text-2xl font-bold leading-tight sm:text-3xl">
         {area.code}. {area.title}
       </h1>
+      {area.sectionTitle && area.sectionTitle !== area.title && <p className="mt-1 text-muted">{area.sectionTitle}</p>}
       <p className="mt-2 text-sm text-muted">
-        {area.questionCount} {pluralRu(area.questionCount, "вопрос", "вопроса", "вопросов")}
+        {count}
         {updated && ` · База актуальна на ${updated}`}
         {area.bankVersion && ` · версия ${area.bankVersion}`}
       </p>
       {area.shortDescription && <p className="mt-3">{area.shortDescription}</p>}
       <p className="mt-2 text-muted">
-        В области {area.code} {area.questionCount} {pluralRu(area.questionCount, "вопрос", "вопроса", "вопросов")}{" "}
-        официального банка Ростехнадзора. Можно тренироваться с интервальным повторением, пройти пробный экзамен и
-        разобрать ошибки; у каждого вопроса есть страница с правильным ответом и ссылкой на норму.
+        В области {area.code} {count}
+        {area.authority ? ` официального банка ${area.authority}` : " с ответами"}. Можно тренироваться с интервальным
+        повторением, пройти пробный экзамен и разобрать ошибки; у каждого вопроса есть страница с правильным ответом и
+        ссылкой на норму.
       </p>
 
       <div className="mt-5">

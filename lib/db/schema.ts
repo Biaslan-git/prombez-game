@@ -32,6 +32,11 @@ export const areas = pgTable("areas", {
   bankUpdatedAt: date("bank_updated_at", { mode: "string" }),
   isPublished: boolean("is_published").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
+  // Сфера (lib/courses.ts) и раздел внутри неё: по ним области группируются на главной и на странице сферы.
+  courseSlug: text("course_slug").notNull().default(""),
+  sectionTitle: text("section_title"),
+  // Чей это банк вопросов («Ростехнадзора», «Минтруда»); null — учебный тест без официального банка.
+  authority: text("authority"),
 });
 
 export const questions = pgTable(
@@ -48,6 +53,12 @@ export const questions = pgTable(
     normRef: text("norm_ref"),
     explanationVerified: boolean("explanation_verified").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
+    // choice — выбор вариантов; order — расставить по порядку; match — сопоставить «левое --- правое».
+    kind: text("kind").notNull().default("choice"),
+    // id вопроса в источнике банка: по нему сопоставляются версии при повторном импорте.
+    sourceId: integer("source_id"),
+    // sha1 картинки к вопросу (сама картинка — в question_images); null — картинки нет.
+    imageHash: text("image_hash"),
     searchVector: tsvector("search_vector").generatedAlwaysAs(sql`to_tsvector('russian', "text")`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -56,6 +67,7 @@ export const questions = pgTable(
     uniqueIndex("questions_area_number_uq").on(t.areaId, t.number),
     uniqueIndex("questions_area_slug_uq").on(t.areaId, t.slug),
     index("questions_search_idx").using("gin", t.searchVector),
+    index("questions_area_source_idx").on(t.areaId, t.sourceId),
   ],
 );
 
@@ -72,6 +84,15 @@ export const answers = pgTable(
   },
   (t) => [index("answers_question_idx").on(t.questionId, t.position)],
 );
+
+/** Картинка к вопросу: часто сам вопрос и есть картинка (бланк, знаки), а ответы — «Рисунок 1», «Рисунок 2». */
+export const questionImages = pgTable("question_images", {
+  questionId: integer("question_id")
+    .primaryKey()
+    .references(() => questions.id, { onDelete: "cascade" }),
+  mime: text("mime").notNull(),
+  data: text("data").notNull(), // base64
+});
 
 export type Area = typeof areas.$inferSelect;
 export type Question = typeof questions.$inferSelect;

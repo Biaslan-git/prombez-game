@@ -19,21 +19,34 @@ async function findKey(): Promise<string> {
   throw new Error("В public/ нет файла-ключа IndexNow (<32 hex>.txt)");
 }
 
+const locs = (xml: string) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]!);
+// Протокол принимает до 10 000 адресов за запрос.
+const BATCH = 10_000;
+
+/** Адреса из sitemap; индекс (sitemapindex) раскрывается в адреса его частей. */
+async function sitemapUrls(url: string): Promise<string[]> {
+  const xml = await (await fetch(url)).text();
+  if (!xml.includes("<sitemapindex")) return locs(xml);
+  return (await Promise.all(locs(xml).map(sitemapUrls))).flat();
+}
+
 async function main() {
   const key = await findKey();
-  const xml = await (await fetch(`${site}/sitemap.xml`)).text();
-  const urlList = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]!);
-  if (urlList.length === 0) throw new Error("В sitemap нет адресов");
-  console.log(`Адресов в sitemap: ${urlList.length}`);
+  const urls = await sitemapUrls(`${site}/sitemap.xml`);
+  if (urls.length === 0) throw new Error("В sitemap нет адресов");
+  console.log(`Адресов в sitemap: ${urls.length}`);
   if (values["dry-run"]) return;
 
-  const res = await fetch("https://yandex.com/indexnow", {
-    method: "POST",
-    headers: { "content-type": "application/json; charset=utf-8" },
-    body: JSON.stringify({ host: new URL(site).host, key, keyLocation: `${site}/${key}.txt`, urlList }),
-  });
-  console.log(`IndexNow: HTTP ${res.status} ${await res.text()}`);
-  if (!res.ok && res.status !== 202) process.exitCode = 1;
+  for (let i = 0; i < urls.length; i += BATCH) {
+    const urlList = urls.slice(i, i + BATCH);
+    const res = await fetch("https://yandex.com/indexnow", {
+      method: "POST",
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ host: new URL(site).host, key, keyLocation: `${site}/${key}.txt`, urlList }),
+    });
+    console.log(`IndexNow ${i + 1}–${i + urlList.length}: HTTP ${res.status} ${await res.text()}`);
+    if (!res.ok && res.status !== 202) process.exitCode = 1;
+  }
 }
 
 main().catch((err) => {

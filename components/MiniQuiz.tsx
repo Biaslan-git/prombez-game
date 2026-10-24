@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AnswerList, Explanation } from "@/components/AnswerList";
+import { AnswerList, Explanation, QuestionImage, canSubmit, needsSubmit, toggleChoice } from "@/components/AnswerList";
 import { ShareButtons } from "@/components/ShareButtons";
 import { useAreaProgress } from "@/components/useAreaProgress";
 import type { ClientQuestion } from "@/lib/data";
@@ -61,7 +61,7 @@ export function MiniQuiz({ area, questions, topicTitle, pageUrl }: Props) {
   }
 
   function submit(ids: number[]) {
-    if (!question || revealed || ids.length === 0) return;
+    if (!question || revealed || !canSubmit(question, ids)) return;
     const correct = isAnswerCorrect(question, ids);
     setSelected(ids);
     setRevealed(true);
@@ -72,7 +72,7 @@ export function MiniQuiz({ area, questions, topicTitle, pageUrl }: Props) {
 
   function onChoose(id: number) {
     if (!question || revealed) return;
-    if (question.multi) setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    if (needsSubmit(question)) setSelected((s) => toggleChoice(question, s, id));
     else submit([id]);
   }
 
@@ -106,7 +106,7 @@ export function MiniQuiz({ area, questions, topicTitle, pageUrl }: Props) {
     const correct = results.filter(Boolean).length;
     const shareText = `Я ответил на ${correct} из ${total} ${pluralRu(total, "вопрос", "вопроса", "вопросов")}${
       topicTitle ? ` по теме «${topicTitle}»` : ""
-    } из банка Ростехнадзора. Проверь себя:`;
+    } по области ${area.code}. Проверь себя:`;
     const hasMore = questions.length > total;
     return (
       <section className="mt-8 rounded-2xl border border-line bg-surface p-5" data-testid="mini-quiz">
@@ -147,18 +147,20 @@ export function MiniQuiz({ area, questions, topicTitle, pageUrl }: Props) {
         </span>
       </div>
       <h2 className="mb-4 text-lg font-semibold leading-snug">{question.text}</h2>
+      <QuestionImage src={question.image} />
       <AnswerList
         answers={question.answers}
         multi={question.multi}
+        kind={question.kind}
         selected={selected}
         revealed={revealed}
         onChoose={onChoose}
       />
-      {question.multi && !revealed && (
+      {needsSubmit(question) && !revealed && (
         <button
           type="button"
           onClick={() => submit(selected)}
-          disabled={selected.length === 0}
+          disabled={!canSubmit(question, selected)}
           className="btn-primary mt-4 w-full disabled:opacity-50"
         >
           Ответить

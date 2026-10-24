@@ -1,7 +1,7 @@
 import { TelegramSubscribe } from "@/components/TelegramSubscribe";
 import Link from "next/link";
 import { CookieBanner } from "@/components/CookieBanner";
-import { SITE_NAME, SOURCE_NAME, SOURCE_URL } from "@/lib/site";
+import { SITE_NAME, SOURCES } from "@/lib/site";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -42,9 +42,14 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           <TelegramSubscribe where="footer" variant="link" />
           <span>
             Ответы и нормы:{" "}
-            <a href={SOURCE_URL} className="underline hover:text-fg">
-              {SOURCE_NAME}
-            </a>
+            {SOURCES.map((src, i) => (
+              <span key={src.url}>
+                {i > 0 && ", "}
+                <a href={src.url} className="underline hover:text-fg">
+                  {src.name}
+                </a>
+              </span>
+            ))}
           </span>
         </div>
       </footer>
