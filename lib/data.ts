@@ -385,12 +385,16 @@ export async function getSitemapEntries() {
 }
 
 /** Канонические вопросы области для «вопроса дня» в Telegram (дубли других областей не берём). */
+/**
+ * Вопросы области для бота «Вопрос дня»: только выбор ответа и без картинок (в опросе Telegram её не показать).
+ * Копии вопросов из других областей не отбрасываем: подписчик выбирает области сам, и у каждой должен быть полный набор.
+ */
 export async function getPollCandidates(areaSlug: string) {
   const area = await getArea(areaSlug);
   if (!area) return [];
-  const [list, dups] = await Promise.all([getAreaQuestions(area.id), getDuplicateTargets()]);
+  const list = await getAreaQuestions(area.id);
   return list
-    .filter((q) => !dups.has(q.id))
+    .filter((q) => q.kind === "choice" && !q.image)
     .map((q) => ({
       id: q.id,
       areaSlug: area.slug,

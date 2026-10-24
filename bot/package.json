@@ -5,7 +5,7 @@
   "description": "Telegram-бот «Вопрос дня» на Telegram Serverless (https://core.telegram.org/bots/serverless)",
   "scripts": {
     "test": "node --test test/*.test.js",
-    "questions": "node ../scripts/build-bot-questions.mjs",
+    "sync": "node ../scripts/sync-bot.mjs fetch && tgcloud push && tgcloud migrate --safe && node ../scripts/sync-bot.mjs import",
     "deploy": "tgcloud push",
     "status": "tgcloud status",
     "run": "tgcloud run"

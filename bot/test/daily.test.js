@@ -1,9 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildPoll, dayNumber, pickDailyQuestion, pickRandomQuestion } from "../tgcloud/lib/daily.js";
-import { parseCommand } from "../tgcloud/lib/texts.js";
+import { buildPoll, dailyIndex, dayNumber, randomIndex } from "../tgcloud/lib/daily.js";
+import { parseCommand, startArea } from "../tgcloud/lib/texts.js";
 import { shuffleAnswers, seededRng } from "../tgcloud/lib/rng.js";
-import { QUESTIONS } from "../tgcloud/lib/questions.js";
 
 const q = (id, over = {}) => ({
   id,
@@ -19,23 +18,21 @@ const q = (id, over = {}) => ({
   ...over,
 });
 
-test("вопрос дня не меняется в течение суток", () => {
-  const pool = [1, 2, 3, 4, 5].map((i) => q(i));
-  const a = pickDailyQuestion(pool, new Date("2026-10-23T05:00:00Z"));
-  const b = pickDailyQuestion(pool, new Date("2026-10-23T18:00:00Z"));
-  assert.equal(a.id, b.id);
+test("вопрос дня: подписчик проходит весь пул без повторов", () => {
+  for (const n of [1, 2, 6, 97, 1000]) {
+    for (const chatId of [1, 42, 123456789, 7000000001]) {
+      const seen = new Set();
+      for (let d = 0; d < n; d++) seen.add(dailyIndex(n, 20400 + d, chatId));
+      assert.equal(seen.size, n, `n=${n}, chat=${chatId}`);
+    }
+  }
 });
 
-test("за N дней проходит все вопросы без повторов", () => {
-  const pool = [1, 2, 3, 4, 5].map((i) => q(i));
-  const ids = new Set(
-    Array.from({ length: 5 }, (_, d) => pickDailyQuestion(pool, new Date(Date.UTC(2026, 9, 23 + d, 6))).id),
-  );
-  assert.equal(ids.size, 5);
-});
-
-test("пустой список — null", () => {
-  assert.equal(pickDailyQuestion([], new Date()), null);
+test("вопрос дня у разных подписчиков разный, пустой пул — -1", () => {
+  const day = dayNumber(new Date("2026-10-25T06:00:00Z"));
+  const picks = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((c) => dailyIndex(5000, day, c)));
+  assert.ok(picks.size > 4);
+  assert.equal(dailyIndex(0, day, 1), -1);
 });
 
 test("номер дня считается по Москве", () => {
@@ -68,24 +65,22 @@ test("команды бота", () => {
   assert.equal(parseCommand("/start site"), "start");
   assert.equal(parseCommand("/stop@prombez_game_bot"), "stop");
   assert.equal(parseCommand("/Question"), "question");
+  assert.equal(parseCommand("/settings"), "settings");
   assert.equal(parseCommand("привет"), "text");
   assert.equal(parseCommand(undefined), "text");
 });
 
-test("зашитые вопросы укладываются в лимиты Telegram", () => {
-  assert.ok(QUESTIONS.length > 30);
-  for (const x of QUESTIONS) {
-    assert.ok(x.text.length <= 300, `вопрос ${x.id}`);
-    assert.equal(x.answers.filter((a) => a.isCorrect).length, 1, `вопрос ${x.id}`);
-    for (const a of x.answers) assert.ok(a.text.length <= 100, `вопрос ${x.id}`);
-  }
+test("/start с сайта со страницы области", () => {
+  assert.equal(startArea("/start a_b1-1"), "b1-1");
+  assert.equal(startArea("/start home"), null);
+  assert.equal(startArea("/start"), null);
 });
 
-test("/question даёт случайный вопрос, не равный вопросу дня", () => {
-  const pool = [1, 2, 3].map((i) => q(i));
-  for (let i = 0; i < 30; i++) assert.notEqual(pickRandomQuestion(pool, 2).id, 2);
-  assert.equal(pickRandomQuestion([q(5)], 5).id, 5);
-  assert.equal(pickRandomQuestion([], 1), null);
+test("/question даёт случайный номер, не равный вопросу дня", () => {
+  for (let i = 0; i < 50; i++) assert.notEqual(randomIndex(3, 1), 1);
+  for (let i = 0; i < 50; i++) assert.ok(randomIndex(3, 2) < 2);
+  assert.equal(randomIndex(1, 0), 0);
+  assert.equal(randomIndex(0, -1), -1);
 });
 
 test("верный ответ не прилипает к одной позиции в разные дни", () => {
@@ -138,37 +133,12 @@ test("если верный вариант закреплён в конце, и�
   assert.equal(poll.correct_option_id, 2);
 });
 
-import { composeQuiz } from "../tgcloud/lib/question.js";
-
-test("/question (random) выбирает вопрос не из вопроса дня и меняет его от запроса к запросу", () => {
-  const pool = Array.from({ length: 30 }, (_, i) => q(i + 1));
-  const now = new Date("2026-10-23T06:00:00Z");
-  const daily = pickDailyQuestion(pool, now);
-  const seen = new Set();
-  for (let i = 0; i < 200; i++) {
-    const poll = composeQuiz({ questions: pool, chatId: 1, now, random: true });
-    assert.notEqual(poll.question, daily.text);
-    seen.add(poll.question);
-  }
-  assert.ok(seen.size > 15, `разных вопросов: ${seen.size}`);
-});
-
-test("вопрос дня (random=false) — один и тот же в течение суток", () => {
-  const pool = Array.from({ length: 30 }, (_, i) => q(i + 1));
-  const now = new Date("2026-10-23T06:00:00Z");
-  const a = composeQuiz({ questions: pool, chatId: 1, now });
-  const b = composeQuiz({ questions: pool, chatId: 2, now: new Date("2026-10-23T15:00:00Z") });
-  assert.equal(a.question, b.question);
-  assert.equal(composeQuiz({ questions: [], chatId: 1, now }), null);
-});
-
 test("при случайном /question позиция верного ответа разная и не повторяет прошлую", () => {
-  const pool = Array.from({ length: 30 }, (_, i) => q(i + 1));
   const now = new Date("2026-10-23T06:00:00Z");
   const positions = new Set();
   let last = null;
   for (let i = 0; i < 100; i++) {
-    const poll = composeQuiz({ questions: pool, chatId: 1, now, random: true, lastPos: last });
+    const poll = buildPoll(q((i % 30) + 1), 1, now, Math.random, last);
     if (last !== null) assert.notEqual(poll.correct_option_id, last);
     positions.add(poll.correct_option_id);
     last = poll.correct_option_id;

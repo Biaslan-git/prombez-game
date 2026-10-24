@@ -7,26 +7,43 @@ export function dayNumber(now) {
   return Math.floor((now.getTime() + 3 * 3600_000) / 86400_000);
 }
 
+function gcd(a, b) {
+  while (b) [a, b] = [b, a % b];
+  return a;
+}
+
+/** Постоянное «случайное» 32-битное число из id чата: параметры порядка вопросов у подписчика. */
+function mix(chatId, salt) {
+  const x = BigInt(chatId);
+  let h = (Number(BigInt.asUintN(32, x)) ^ Math.imul(Number(BigInt.asUintN(32, x >> 32n)), 31) ^ salt) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
 /**
- * Вопрос дня: вопросы идут в постоянном «случайном» порядке (одинаковом при каждом запуске),
- * в день N берём N-й. Повторы начинаются, только когда пройдены все вопросы.
+ * Номер вопроса дня в пуле из n вопросов (по порядку id): (a·day + b) mod n, где a взаимно просто с n.
+ * Так подписчик проходит весь пул без повторов (пока пул не меняется), а у разных подписчиков порядок разный.
  */
-export function pickDailyQuestion(questions, now) {
-  if (!questions.length) return null;
-  const pool = [...questions].sort((a, b) => a.id - b.id);
-  const rng = seededRng(20261023);
-  const order = pool.map((q, i) => ({ q, k: rng() + i * 1e-9 })).sort((a, b) => a.k - b.k);
-  return order[((dayNumber(now) % order.length) + order.length) % order.length].q;
+export function dailyIndex(n, day, chatId) {
+  if (n <= 0) return -1;
+  if (n === 1) return 0;
+  let a = 1 + (mix(chatId, 0x9e37) % (n - 1));
+  while (gcd(a, n) !== 1) a = a + 1 === n ? 1 : a + 1;
+  const b = mix(chatId, 0x85eb) % n;
+  return Number((BigInt(a) * BigInt(day) + BigInt(b)) % BigInt(n));
 }
 
 function truncate(s, max) {
   return s.length <= max ? s : s.slice(0, max - 1).trimEnd() + "…";
 }
 
-/** Случайный вопрос для команды /question (не тот, что уже выпал, если вопросов больше одного). */
-export function pickRandomQuestion(questions, excludeId, rng = Math.random) {
-  const pool = questions.length > 1 ? questions.filter((q) => q.id !== excludeId) : questions;
-  return pool.length ? pool[Math.floor(rng() * pool.length)] : null;
+/** Случайный номер для команды /question: не вопрос дня, если в пуле больше одного вопроса. */
+export function randomIndex(n, excludeIndex, rng = Math.random) {
+  if (n <= 0) return -1;
+  if (n === 1) return 0;
+  const k = Math.floor(rng() * (n - 1));
+  return excludeIndex >= 0 && k >= excludeIndex ? k + 1 : k;
 }
 
 /**
