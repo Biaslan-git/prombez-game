@@ -40,8 +40,9 @@ jobs:
         run: node --test bot/test/*.test.js
       - name: Выложить код и обновить схему базы
         working-directory: bot
+        # --force: в чистом checkout нет состояния CLI (.tgcloud/), а источник правды — репозиторий.
         run: |
-          npx tgcloud push
+          npx tgcloud push --force
           npx tgcloud migrate --safe
           npx tgcloud webhook sync
       - name: Загрузить вопросы в базу бота
