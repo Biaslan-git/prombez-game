@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AdSlot } from "@/components/AdSlot";
-import { AnswerList, Explanation } from "@/components/AnswerList";
+import {
+  AnswerList,
+  Explanation,
+  QuestionImage,
+  canSubmit,
+  kindHint,
+  needsSubmit,
+  toggleChoice,
+} from "@/components/AnswerList";
 import { ReadinessBar } from "@/components/Readiness";
 import { useAreaProgress } from "@/components/useAreaProgress";
 import { useAnswerHotkeys } from "@/components/useHotkeys";
@@ -88,7 +96,7 @@ export function Trainer({ area, questions, mode = "all" }: Props) {
   );
 
   function submit(ids: number[]) {
-    if (!question || revealed || ids.length === 0) return;
+    if (!question || revealed || !canSubmit(question, ids)) return;
     const correct = isAnswerCorrect(question, ids);
     setSelected(ids);
     setRevealed(true);
@@ -112,7 +120,7 @@ export function Trainer({ area, questions, mode = "all" }: Props) {
 
   function onChoose(id: number) {
     if (!question || revealed) return;
-    if (question.multi) setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    if (needsSubmit(question)) setSelected((s) => toggleChoice(question, s, id));
     else submit([id]);
   }
 
@@ -137,7 +145,7 @@ export function Trainer({ area, questions, mode = "all" }: Props) {
     },
     onEnter: () => {
       if (revealed) goNext();
-      else if (question?.multi) submit(selected);
+      else if (question && needsSubmit(question)) submit(selected);
     },
   });
 
@@ -216,23 +224,25 @@ export function Trainer({ area, questions, mode = "all" }: Props) {
         <div className="mb-2 text-sm text-muted">
           Вопрос №{question.number}
           {current?.reason === "repeat" && " · повтор ошибки"}
-          {question.multi && " · несколько правильных ответов"}
+          {kindHint(question) && ` · ${kindHint(question)}`}
         </div>
         <h1 className="mb-5 text-lg font-semibold leading-snug sm:text-xl">{question.text}</h1>
+        <QuestionImage src={question.image} />
 
         <AnswerList
           answers={question.answers}
           multi={question.multi}
+          kind={question.kind}
           selected={selected}
           revealed={revealed}
           onChoose={onChoose}
         />
 
-        {question.multi && !revealed && (
+        {needsSubmit(question) && !revealed && (
           <button
             type="button"
             onClick={() => submit(selected)}
-            disabled={selected.length === 0}
+            disabled={!canSubmit(question, selected)}
             className="btn-primary mt-4 w-full disabled:opacity-50"
           >
             Ответить

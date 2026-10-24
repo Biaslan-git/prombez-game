@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
 import { getArea, getAreaTopics, getPublishedAreas, getTopicQuestions, safeStaticParams } from "@/lib/data";
+import { courseOf } from "@/lib/courses";
 import { absoluteUrl, formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
 import { truncate } from "@/lib/text";
 
@@ -34,7 +35,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!data) return {};
   const { area, topic, questions } = data;
   return pageMetadata({
-    title: `${topic.title}: вопросы и ответы ${area.code} — Ростехнадзор`,
+    title: `${topic.title}: вопросы и ответы ${area.code}${area.authority ? ` — ${area.authority}` : ""}`,
     absoluteTitle: true,
     ogTitle: `${topic.title} — вопросы ${area.code} с ответами`,
     description: `${questions.length} ${pluralRu(questions.length, "вопрос", "вопроса", "вопросов")} области ${area.code} про ${topic.about}: правильные ответы и тренажёр. Бесплатно, без регистрации.`,
@@ -68,6 +69,7 @@ export default async function TopicPage({ params }: Params) {
       <Breadcrumbs
         items={[
           { name: "Главная", href: "/" },
+          { name: courseOf(area.courseSlug).title, href: `/kurs/${courseOf(area.courseSlug).slug}` },
           { name: area.code, href: `/${area.slug}` },
           { name: topic.title, href: path },
         ]}
@@ -76,7 +78,8 @@ export default async function TopicPage({ params }: Params) {
         {topic.title}: вопросы и ответы {area.code}
       </h1>
       <p className="mt-2 text-muted">
-        {questions.length} {pluralRu(questions.length, "вопрос", "вопроса", "вопросов")} банка Ростехнадзора по области{" "}
+        {questions.length} {pluralRu(questions.length, "вопрос", "вопроса", "вопросов")}
+        {area.authority ? ` банка ${area.authority}` : ""} по области{" "}
         <Link href={`/${area.slug}`} className="underline">
           {area.code}. {area.title}
         </Link>{" "}
@@ -97,7 +100,14 @@ export default async function TopicPage({ params }: Params) {
                 </Link>
               </h2>
               <p className="mt-2 rounded-xl bg-ok-bg px-3 py-2 text-sm">
-                <b>Правильный ответ:</b> {correct.join("; ")}
+                <b>
+                  {q.kind === "order"
+                    ? "Правильный порядок:"
+                    : q.kind === "match"
+                      ? "Правильные пары:"
+                      : "Правильный ответ:"}
+                </b>{" "}
+                {correct.join(q.kind === "order" ? " → " : "; ")}
               </p>
             </li>
           );

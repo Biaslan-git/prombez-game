@@ -1,5 +1,9 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
+import { QUESTION_KINDS, joinPair, splitPair, type QuestionKind } from "./question-kind";
 import { normalizeText } from "./text";
+
+const IMAGE_RE = /^data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=\s]+)$/;
 
 const answerSchema = z.object({
   text: z.string().trim().min(1, "пустой текст ответа"),
@@ -14,9 +18,20 @@ const questionSchema = z
     norm_ref: z.string().trim().min(1).nullish(),
     explanation: z.string().trim().min(1).nullish(),
     explanation_verified: z.boolean().optional(),
+    kind: z.enum(QUESTION_KINDS).optional(),
+    source_id: z.number().int().positive().nullish(),
+    image: z.string().regex(IMAGE_RE, "картинка — data URI PNG, JPEG, GIF или WebP").nullish(),
   })
   .refine((q) => q.answers.some((a) => a.is_correct), {
     message: "нет ни одного правильного ответа",
+    path: ["answers"],
+  })
+  .refine((q) => !q.kind || q.kind === "choice" || q.answers.every((a) => a.is_correct), {
+    message: "в вопросе на порядок или соответствие все варианты должны быть отмечены верными",
+    path: ["answers"],
+  })
+  .refine((q) => q.kind !== "match" || q.answers.every((a) => splitPair(a.text)), {
+    message: "в вопросе на соответствие каждый вариант — «левое --- правое»",
     path: ["answers"],
   });
 
@@ -39,6 +54,14 @@ export const importFileSchema = z.object({
       })
       .optional(),
     sort_order: z.number().int().optional(),
+    // Сфера (slug из lib/courses.ts), раздел внутри неё и чей это банк («Ростехнадзора»; null — учебный тест).
+    course: z
+      .string()
+      .trim()
+      .regex(/^[a-z0-9-]+$/, "slug сферы: латиница, цифры и дефис")
+      .optional(),
+    section: z.string().trim().min(1).nullish(),
+    authority: z.string().trim().min(1).nullish(),
   }),
   questions: z.array(z.unknown()).min(1, "в файле нет вопросов"),
 });
@@ -50,6 +73,9 @@ export type ImportQuestion = {
   normRef: string | null;
   explanation: string | null | undefined;
   explanationVerified: boolean | undefined;
+  kind: QuestionKind;
+  sourceId: number | null;
+  image: { mime: string; data: string; hash: string } | null;
 };
 
 export type ParsedImport = {
@@ -72,6 +98,7 @@ export function parseImportFile(raw: unknown): ParsedImport {
   const errors: string[] = [];
   const questions: ImportQuestion[] = [];
   const seen = new Set<number>();
+  const seenSource = new Set<number>();
   top.data.questions.forEach((rawQ, index) => {
     const res = questionSchema.safeParse(rawQ);
     const num = (rawQ as { number?: unknown } | null)?.number;
@@ -89,15 +116,39 @@ export function parseImportFile(raw: unknown): ParsedImport {
       return;
     }
     seen.add(q.number);
+    if (q.source_id) {
+      if (seenSource.has(q.source_id)) {
+        errors.push(`${label}: source_id ${q.source_id} повторяется`);
+        return;
+      }
+      seenSource.add(q.source_id);
+    }
+    const kind = q.kind ?? "choice";
     questions.push({
       number: q.number,
       text: normalizeText(q.text),
-      answers: q.answers.map((a) => ({ text: normalizeText(a.text), isCorrect: a.is_correct })),
+      answers: q.answers.map((a) => ({ text: answerText(kind, a.text), isCorrect: a.is_correct })),
       normRef: q.norm_ref ? normalizeText(q.norm_ref) : null,
       explanation: q.explanation === undefined ? undefined : q.explanation ? normalizeText(q.explanation) : null,
       explanationVerified: q.explanation_verified,
+      kind,
+      sourceId: q.source_id ?? null,
+      image: q.image ? parseImage(q.image) : null,
     });
   });
   questions.sort((a, b) => a.number - b.number);
   return { area: top.data.area, questions, errors };
+}
+
+function answerText(kind: QuestionKind, raw: string): string {
+  const text = normalizeText(raw);
+  if (kind !== "match") return text;
+  const [left, right] = splitPair(text)!;
+  return joinPair(left, right);
+}
+
+function parseImage(uri: string): { mime: string; data: string; hash: string } {
+  const [, mime, b64] = IMAGE_RE.exec(uri)!;
+  const data = b64!.replace(/\s+/g, "");
+  return { mime: mime!, data, hash: createHash("sha1").update(data).digest("hex") };
 }

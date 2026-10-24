@@ -12,6 +12,8 @@ export type DupItem = {
   slug: string;
   text: string;
   correct: string[];
+  /** Вопросы с картинкой совпадают, только если совпала и картинка: текст у них часто общий («Что на рисунке?»). */
+  imageHash?: string | null;
 };
 
 export type CanonicalTarget = { areaSlug: string; slug: string };
@@ -25,8 +27,8 @@ function norm(s: string): string {
     .trim();
 }
 
-export function duplicateKey(item: Pick<DupItem, "text" | "correct">): string {
-  return `${norm(item.text)}||${item.correct.map(norm).sort().join("|")}`;
+export function duplicateKey(item: Pick<DupItem, "text" | "correct" | "imageHash">): string {
+  return `${norm(item.text)}||${item.correct.map(norm).sort().join("|")}||${item.imageHash ?? ""}`;
 }
 
 /** id неглавных копий → адрес главной страницы. Главные страницы в карту не попадают. */

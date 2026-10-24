@@ -10,7 +10,8 @@ import { runImport } from "@/lib/import-db";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BODY_BYTES = 5 * 1024 * 1024;
+// Банки с картинками (data URI) весят до ~20 МБ.
+const MAX_BODY_BYTES = 40 * 1024 * 1024;
 const SLUG_RE = /^[a-z0-9-]{1,40}$/;
 
 /** Без IMPORT_TOKEN эндпоинт «не существует»; с неверным токеном — 401. */
@@ -58,13 +59,13 @@ export async function POST(req: NextRequest) {
   const version = params.get("version")?.trim() ?? parsed.area.bank_version ?? "";
   const summary = { area: parsed.area.code, slug, version, questions: parsed.questions.length };
 
-  if (flag(params.get("dryRun"))) return NextResponse.json({ dryRun: true, ...summary });
-
+  // dryRun: тот же импорт с откатом транзакции — отчёт показывает, сколько вопросов узнано, добавится и уйдёт.
+  const dryRun = flag(params.get("dryRun"));
   const publish = flag(params.get("publish"));
   try {
-    const report = await runImport(getDb(), parsed, { slug, version, publish });
-    revalidatePath("/", "layout");
-    return NextResponse.json({ dryRun: false, publish, ...summary, report });
+    const report = await runImport(getDb(), parsed, { slug, version, publish, dryRun });
+    if (!dryRun) revalidatePath("/", "layout");
+    return NextResponse.json({ dryRun, publish, ...summary, report });
   } catch (err) {
     // 23505 — нарушение уникальности: чаще всего код области уже занят другим slug.
     const pgCode = (err as { cause?: { code?: string } }).cause?.code;

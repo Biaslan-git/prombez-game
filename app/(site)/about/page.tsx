@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FEEDBACK_EMAIL, SOURCE_NAME, SOURCE_URL, pageMetadata } from "@/lib/site";
+import { FEEDBACK_EMAIL, SOURCES, pageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
   title: "О проекте",
@@ -35,12 +35,19 @@ export default function AboutPage() {
       </ul>
       <h2 className="text-xl font-semibold">Откуда вопросы и ответы</h2>
       <p>
-        Перечень вопросов — официальный банк Ростехнадзора (для области А.1 это распоряжение от 24.06.2024 № 47-рп,
-        действует с 1 сентября 2024 года). Варианты ответов, отметки правильных ответов и ссылки на нормы подготовлены
-        на основе материалов сайта{" "}
-        <a href={SOURCE_URL} className="underline">
-          {SOURCE_NAME}
-        </a>
+        По промышленной, энергетической и электробезопасности и по гидротехническим сооружениям — открытые банки
+        вопросов Ростехнадзора (для области А.1 это распоряжение от 24.06.2024 № 47-рп, действует с 1 сентября 2024
+        года), по охране труда в ЕИСОТ и для экспертов по СОУТ — вопросы Минтруда. Тесты по остальным направлениям
+        учебные: официального банка у них нет. Варианты ответов, отметки правильных ответов и ссылки на нормы
+        подготовлены на основе материалов сайтов{" "}
+        {SOURCES.map((src, i) => (
+          <span key={src.url}>
+            {i > 0 && " и "}
+            <a href={src.url} className="underline">
+              {src.name}
+            </a>
+          </span>
+        ))}
         . Дата актуальности банка указана на странице каждой области.
       </p>
       <p>

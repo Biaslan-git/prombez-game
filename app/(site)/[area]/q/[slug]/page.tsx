@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdSlot } from "@/components/AdSlot";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { QuestionImage } from "@/components/AnswerList";
 import { MiniQuiz } from "@/components/MiniQuiz";
 import { ShareButtons } from "@/components/ShareButtons";
 import { TelegramSubscribe } from "@/components/TelegramSubscribe";
@@ -17,6 +18,8 @@ import {
   safeStaticParams,
 } from "@/lib/data";
 import { absoluteUrl, formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
+import { courseOf } from "@/lib/courses";
+import { solutionOrder, splitPair } from "@/lib/question-kind";
 import { pickQuizQuestions } from "@/lib/quiz";
 import { questionHint, truncate } from "@/lib/text";
 import { topicsFor } from "@/lib/topics";
@@ -68,7 +71,10 @@ export default async function QuestionPage({ params }: Params) {
     getAreaQuestions(area.id),
   ]);
   const quizQuestions = pickQuizQuestions(areaQuestions, q);
-  const hint = questionHint(q.text, correct.length);
+  const hint = q.kind === "choice" ? questionHint(q.text, correct.length) : null;
+  const solution = solutionOrder(q.answers);
+  const course = courseOf(area.courseSlug);
+  const bank = area.authority ? `банка ${area.authority}` : "банка вопросов";
   const myTopics = topicsFor(q.text)
     .map((t) => areaTopics.find((a) => a.slug === t.slug))
     .filter((t): t is NonNullable<typeof t> => !!t)
@@ -83,6 +89,7 @@ export default async function QuestionPage({ params }: Params) {
       <Breadcrumbs
         items={[
           { name: "Главная", href: "/" },
+          { name: course.title, href: `/kurs/${course.slug}` },
           { name: area.code, href: `/${area.slug}` },
           { name: `Вопрос №${q.number}`, href: `/${area.slug}/q/${q.slug}` },
         ]}
@@ -97,17 +104,46 @@ export default async function QuestionPage({ params }: Params) {
       <article>
         <p className="mb-2 text-sm text-muted">
           {area.code} · вопрос №{q.number}
-          {correct.length > 1 && " · несколько правильных ответов"}
+          {q.kind === "choice" && correct.length > 1 && " · несколько правильных ответов"}
+          {q.kind === "order" && " · на порядок"}
+          {q.kind === "match" && " · на соответствие"}
         </p>
         <h1 className="text-xl font-semibold leading-snug sm:text-2xl">{truncate(q.text, 300)}</h1>
         {q.text.length > 300 && <p className="mt-2">{q.text}</p>}
         {hint && <p className="mt-2 text-muted">{hint}</p>}
+        {q.image && (
+          <div className="mt-4">
+            <QuestionImage src={q.image} />
+          </div>
+        )}
 
-        <p className="mt-4 rounded-xl bg-ok-bg px-4 py-3">
-          <b>Правильный ответ:</b> {correct.map((a) => a.text).join("; ")}
-        </p>
+        {q.kind === "choice" ? (
+          <p className="mt-4 rounded-xl bg-ok-bg px-4 py-3">
+            <b>Правильный ответ:</b> {correct.map((a) => a.text).join("; ")}
+          </p>
+        ) : (
+          <div className="mt-4 rounded-xl bg-ok-bg px-4 py-3">
+            <b>{q.kind === "order" ? "Правильный порядок:" : "Правильные пары:"}</b>
+            <ol className="mt-1 list-decimal pl-6">
+              {solution.map((a) => {
+                const pair = q.kind === "match" ? splitPair(a.text) : null;
+                return (
+                  <li key={a.id}>
+                    {pair ? (
+                      <>
+                        {pair[0]} — <b>{pair[1]}</b>
+                      </>
+                    ) : (
+                      a.text
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        )}
         <p className="mt-2 text-sm text-muted">
-          Вопрос №{q.number} из банка Ростехнадзора по области{" "}
+          Вопрос №{q.number} из {bank} по области{" "}
           <Link href={`/${area.slug}`} className="underline">
             {area.code}. {area.title}
           </Link>
@@ -119,32 +155,32 @@ export default async function QuestionPage({ params }: Params) {
           </Link>
         </p>
         <div className="mt-3">
-          <ShareButtons
-            url={url}
-            text={`${truncate(q.text, 120)} Ответ на вопрос из банка Ростехнадзора:`}
-            where="question"
-          />
+          <ShareButtons url={url} text={`${truncate(q.text, 120)} Ответ на вопрос из ${bank}:`} where="question" />
         </div>
 
-        <h2 className="sr-only">Варианты ответа</h2>
-        <ul className="mt-5 flex flex-col gap-2.5">
-          {q.answers.map((a, i) => (
-            <li
-              key={a.id}
-              className={`flex gap-3 rounded-xl border-2 px-3.5 py-3 ${
-                a.isCorrect ? "border-ok bg-ok-bg" : "border-line bg-surface"
-              }`}
-            >
-              <span aria-hidden className="w-5 shrink-0 font-semibold text-muted">
-                {a.isCorrect ? "✓" : i + 1}
-              </span>
-              <span>
-                {a.text}
-                {a.isCorrect && <strong className="ml-2 text-sm text-ok">— правильный ответ</strong>}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {q.kind === "choice" && (
+          <>
+            <h2 className="sr-only">Варианты ответа</h2>
+            <ul className="mt-5 flex flex-col gap-2.5">
+              {q.answers.map((a, i) => (
+                <li
+                  key={a.id}
+                  className={`flex gap-3 rounded-xl border-2 px-3.5 py-3 ${
+                    a.isCorrect ? "border-ok bg-ok-bg" : "border-line bg-surface"
+                  }`}
+                >
+                  <span aria-hidden className="w-5 shrink-0 font-semibold text-muted">
+                    {a.isCorrect ? "✓" : i + 1}
+                  </span>
+                  <span>
+                    {a.text}
+                    {a.isCorrect && <strong className="ml-2 text-sm text-ok">— правильный ответ</strong>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         {(q.explanation || q.normRef) && (
           <section className="mt-5 rounded-xl border border-line bg-surface p-4">
