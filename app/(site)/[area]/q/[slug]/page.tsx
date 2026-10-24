@@ -202,7 +202,7 @@ export default async function QuestionPage({ params }: Params) {
         pageUrl={url}
       />
 
-      <TelegramSubscribe where="question" />
+      <TelegramSubscribe where="question" area={area.slug} />
 
       <AdSlot id="question" />
 

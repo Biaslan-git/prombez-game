@@ -133,15 +133,23 @@ curl -X POST "$URL?area=a1&publish=1" -H "Authorization: Bearer $T" --data-binar
 
 ## Telegram-бот «Вопрос дня»
 
-Человек нажимает на сайте «Получать вопрос дня», в боте `/start` подписывает его, каждый день в 09:00 (МСК) бот присылает викторину (`sendPoll`), `/stop` удаляет подписку.
-Бот работает на [Telegram Serverless](https://core.telegram.org/bots/serverless): код и база подписчиков (SQLite) живут у Telegram, серверу сайта до Telegram ходить не нужно. Проект лежит в `bot/`.
+Человек нажимает на сайте «Получать вопрос дня», в боте `/start` подписывает его, каждый день в 09:00 (МСК) бот присылает викторину (`sendPoll`) из выбранных подписчиком областей, `/settings` — выбор сфер и областей, `/stop` удаляет подписку.
+Бот работает на [Telegram Serverless](https://core.telegram.org/bots/serverless): код и база (SQLite) живут у Telegram, серверу сайта до Telegram ходить не нужно. Проект лежит в `bot/`.
 
-- `bot/tgcloud/handlers/message.js` — команды `/start`, `/question`, `/stop`, `/help`; `bot/tgcloud/schema.js` — таблица `subscribers`.
-- `bot/tgcloud/lib/questions.js` — вопросы, зашитые в код бота (только с одним верным ответом и подходящие по лимитам Telegram). Обновляется после импорта банка:
-  `node scripts/build-bot-questions.mjs && cd bot && npx tgcloud push`.
-- `bot/tgcloud/endpoints/daily.js` — рассылка подписчикам, `endpoints/stats.js` — число подписчиков.
+- `bot/tgcloud/handlers/message.js` — команды `/start`, `/settings`, `/question`, `/stop`, `/help`; `handlers/callback_query.js` — кнопки меню `/settings`.
+  `bot/tgcloud/schema.js` — таблицы `subscribers` (в `areas` — выбранные области, null — А.1) и `questions` (копия вопросов сайта).
+- `bot/tgcloud/lib/settings.js` — меню выбора; `lib/catalog.js` — сферы и области для меню (создаёт `scripts/sync-bot.mjs`);
+  `lib/pool.js` и `lib/daily.js` — выбор вопроса: у каждого подписчика свой порядок, весь пул проходится без повторов.
+  Со страницы вопроса на сайте ссылка ведёт на `/start a_<slug>`: область сразу добавляется к выбору.
+- В бота попадают только вопросы с одним верным ответом, без картинок и в лимитах Telegram (`lib/poll-questions.ts`), примерно половина банка.
+- Синхронизация с сайтом — workflow «Выкатка бота в Telegram» (`.github/workflows/bot-deploy.yml`): при изменениях бота в `main` и вручную.
+  Он скачивает вопросы (`node scripts/sync-bot.mjs fetch`, ручки `GET /api/telegram/areas` и `/api/telegram/questions?area=…`),
+  выкладывает код (`tgcloud push`, `migrate --safe`, `webhook sync`) и загружает вопросы в базу бота (`sync-bot.mjs import`).
+  **После импорта банка** запустите его вручную: Actions → «Выкатка бота в Telegram» → Run workflow.
+- `bot/tgcloud/endpoints/daily.js` — рассылка подписчикам, `endpoints/stats.js` — число подписчиков, `endpoints/importQuestions.js` — приём вопросов от `sync-bot.mjs`.
 - Расписание: Serverless не умеет cron, поэтому ежедневно запускает GitHub Actions (`.github/workflows/daily-question.yml`) командой `tgcloud run endpoints/daily`.
   Нужен секрет репозитория `TGCLOUD_TOKEN` (@BotFather → бот → Serverless → CLI Access → Access token). Вручную: вкладка Actions → Run workflow.
+  Расписание GitHub берёт из ветки по умолчанию, поэтому она должна быть `main`.
 
 Работа с ботом (токен — только в переменной окружения `TGCLOUD_TOKEN`, в файлы не записывается):
 

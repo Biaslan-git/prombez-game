@@ -1,0 +1,48 @@
+name: Выкатка бота в Telegram
+
+# Выкладывает код бота (bot/) на Telegram Serverless и загружает в его базу вопросы с сайта (scripts/sync-bot.mjs).
+# Запускается при изменениях бота в main и вручную (Actions → Run workflow) — например, после импорта нового банка.
+# Нужен секрет репозитория TGCLOUD_TOKEN (см. daily-question.yml).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "bot/**"
+      - "scripts/sync-bot.mjs"
+      - "app/api/telegram/**"
+      - "lib/poll-questions.ts"
+      - ".github/workflows/bot-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: bot-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bot/package-lock.json
+      - run: npm ci
+        working-directory: bot
+      # Сразу после мёржа сайт ещё собирается в Dokploy: ждём, пока он начнёт отдавать новые ручки для бота.
+      - name: Вопросы и каталог областей с сайта
+        run: node scripts/sync-bot.mjs fetch --site https://prombez-game.ru --wait 1800
+      - name: Тесты бота
+        run: node --test bot/test/*.test.js
+      - name: Выложить код и обновить схему базы
+        working-directory: bot
+        run: |
+          npx tgcloud push
+          npx tgcloud migrate --safe
+          npx tgcloud webhook sync
+      - name: Загрузить вопросы в базу бота
+        run: node scripts/sync-bot.mjs import

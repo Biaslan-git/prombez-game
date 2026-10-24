@@ -1,10 +1,12 @@
-// Ежедневная рассылка вопроса дня. Запускается по расписанию: `tgcloud run endpoints/daily '{}'` (GitHub Actions).
+// Ежедневная рассылка вопроса дня: каждому подписчику — из выбранных им областей (/settings).
+// Запускается по расписанию: `tgcloud run endpoints/daily '{}'` (GitHub Actions).
 // Публично недоступна: у бота нет Mini App, а запрос без проверенных init data платформа отклоняет.
 import { api, db } from "sdk";
 import { eq } from "sdk/db";
 import { subscribers } from "../schema.js";
-import { QUESTIONS } from "../lib/questions.js";
-import { buildPoll, dayNumber, pickDailyQuestion } from "../lib/daily.js";
+import { buildPoll, dayNumber } from "../lib/daily.js";
+import { pickQuestion } from "../lib/pool.js";
+import { areasOf } from "../lib/subscriber.js";
 
 const sleep = (ms) => (typeof setTimeout === "function" ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve());
 
@@ -25,17 +27,19 @@ async function sendWithRetry(poll) {
 export default async function daily() {
   const now = new Date();
   const day = dayNumber(now);
-  const q = pickDailyQuestion(QUESTIONS, now);
-  if (!q) return { error: "no_question" };
-
   const subs = await db.select().from(subscribers).where(eq(subscribers.active, true)).all();
-  const report = { day, questionId: q.id, subscribers: subs.length, sent: 0, alreadySent: 0, blocked: 0, failed: 0 };
+  const report = { day, subscribers: subs.length, sent: 0, alreadySent: 0, noQuestion: 0, blocked: 0, failed: 0 };
   for (const s of subs) {
     if (s.lastSentDay === day) {
       report.alreadySent++;
       continue;
     }
     try {
+      const q = await pickQuestion(areasOf(s), s.chatId, now);
+      if (!q) {
+        report.noQuestion++;
+        continue;
+      }
       const poll = buildPoll(q, s.chatId, now, undefined, s.lastPos ?? null);
       await sendWithRetry(poll);
       await db

@@ -1,6 +1,6 @@
 /**
  * Вопросы для викторины в Telegram-боте «Вопрос дня». Бот работает на Telegram Serverless (см. bot/) и получает
- * вопросы в виде файла, который генерирует scripts/build-bot-questions.mjs по GET /api/telegram/questions.
+ * вопросы в свою базу через scripts/sync-bot.mjs (GET /api/telegram/questions?area=…).
  */
 
 /** Ограничения Telegram для quiz-опросов (sendPoll). */
