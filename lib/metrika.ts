@@ -5,8 +5,6 @@ export type Goal =
   | "exam_finished"
   | "exam_passed"
   | "search_used"
-  | "quiz_started"
-  | "quiz_done"
   | "share_click"
   | "telegram_click";
 
