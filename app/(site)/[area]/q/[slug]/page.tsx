@@ -4,12 +4,10 @@ import { notFound } from "next/navigation";
 import { AdSlot } from "@/components/AdSlot";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { QuestionImage } from "@/components/AnswerList";
-import { MiniQuiz } from "@/components/MiniQuiz";
 import { ShareButtons } from "@/components/ShareButtons";
 import { TelegramSubscribe } from "@/components/TelegramSubscribe";
 import {
   getArea,
-  getAreaQuestions,
   getAreaTopics,
   getDuplicateTargets,
   getQuestionPage,
@@ -20,7 +18,6 @@ import {
 import { absoluteUrl, formatDateRu, pageMetadata, pluralRu } from "@/lib/site";
 import { courseOf } from "@/lib/courses";
 import { solutionOrder, splitPair } from "@/lib/question-kind";
-import { pickQuizQuestions } from "@/lib/quiz";
 import { questionHint, truncate } from "@/lib/text";
 import { topicsFor } from "@/lib/topics";
 
@@ -65,12 +62,7 @@ export default async function QuestionPage({ params }: Params) {
   if (!data) notFound();
   const { area, q } = data;
   const correct = q.answers.filter((a) => a.isCorrect);
-  const [similar, areaTopics, areaQuestions] = await Promise.all([
-    getSimilarQuestions(area.id, q.id, q.text),
-    getAreaTopics(area.id),
-    getAreaQuestions(area.id),
-  ]);
-  const quizQuestions = pickQuizQuestions(areaQuestions, q);
+  const [similar, areaTopics] = await Promise.all([getSimilarQuestions(area.id, q.id, q.text), getAreaTopics(area.id)]);
   const hint = q.kind === "choice" ? questionHint(q.text, correct.length) : null;
   const solution = solutionOrder(q.answers);
   const course = courseOf(area.courseSlug);
@@ -195,12 +187,16 @@ export default async function QuestionPage({ params }: Params) {
         )}
       </article>
 
-      <MiniQuiz
-        area={{ slug: area.slug, code: area.code }}
-        questions={quizQuestions}
-        topicTitle={myTopics[0]?.title ?? null}
-        pageUrl={url}
-      />
+      <section className="mt-8 rounded-2xl border border-line bg-surface p-5 text-center">
+        <p className="font-semibold">
+          Тренируйте все {area.questionCount} {pluralRu(area.questionCount, "вопрос", "вопроса", "вопросов")} области{" "}
+          {area.code}
+        </p>
+        <p className="mt-1 text-sm text-muted">Бесплатно и без регистрации: ошибки повторяются, готовность растёт.</p>
+        <Link href={`/${area.slug}/train`} className="btn-primary mt-4 w-full sm:w-auto">
+          Начать тренировку
+        </Link>
+      </section>
 
       <TelegramSubscribe where="question" area={area.slug} />
 
@@ -222,17 +218,6 @@ export default async function QuestionPage({ params }: Params) {
           <span />
         )}
       </nav>
-
-      <section className="mt-6 rounded-2xl border border-line bg-surface p-5 text-center">
-        <p className="font-semibold">
-          Тренируйте все {area.questionCount} {pluralRu(area.questionCount, "вопрос", "вопроса", "вопросов")} области{" "}
-          {area.code}
-        </p>
-        <p className="mt-1 text-sm text-muted">Бесплатно и без регистрации: ошибки повторяются, готовность растёт.</p>
-        <Link href={`/${area.slug}/train`} className="btn-primary mt-4 w-full sm:w-auto">
-          Начать тренировку
-        </Link>
-      </section>
 
       {myTopics.length > 0 && (
         <section className="mt-8">
