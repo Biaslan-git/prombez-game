@@ -16,6 +16,7 @@ import {
   pickNext,
   pickNextMistake,
   readiness,
+  readinessCredit,
   readinessLabel,
   recordAnswer,
   recordExam,
@@ -74,6 +75,28 @@ describe("readiness", () => {
     expect(isMastered(undefined)).toBe(false);
   });
 
+  it("credit grows with box up to 3, zero after a wrong last answer", () => {
+    expect(readinessCredit(undefined)).toBe(0);
+    expect(readinessCredit(q({ box: 1 }))).toBeCloseTo(1 / 3);
+    expect(readinessCredit(q({ box: 2 }))).toBeCloseTo(2 / 3);
+    expect(readinessCredit(q({ box: 3 }))).toBe(1);
+    expect(readinessCredit(q({ box: 5 }))).toBe(1);
+    expect(readinessCredit(q({ box: 1, lastResults: [true, false] }))).toBe(0);
+  });
+
+  it("grows on the first day, before any question can reach box 3", () => {
+    const ids = Array.from({ length: 30 }, (_, i) => i + 1);
+    let p = emptyAreaProgress();
+    expect(readiness(p, ids)).toBe(0);
+    p = recordAnswer(p, 1, true, NOW);
+    expect(readiness(p, ids)).toBe(1); // 1/3 из 30 — меньше процента, но шкала сдвинулась
+    p = emptyAreaProgress();
+    for (const id of ids.slice(0, 10)) p = recordAnswer(p, id, true, NOW);
+    for (const id of ids.slice(0, 10)) p = recordAnswer(p, id, true, NOW);
+    expect(areaStats(p, ids).mastered).toBe(0);
+    expect(readiness(p, ids)).toBe(22); // 10 вопросов в ячейке 2: 10 * 2/3 / 30
+  });
+
   it("computes rounded percent over active questions only", () => {
     const p = withQuestions({
       1: q({ box: 3, lastResults: [true] }),
@@ -114,7 +137,8 @@ describe("readiness", () => {
     expect(isMistake(p.questions[2])).toBe(true);
     expect(isMistake(p.questions[4])).toBe(false);
     expect(mistakeIds(p, [1, 2, 3, 4, 5])).toEqual([2, 3]);
-    expect(areaStats(p, [1, 2, 3, 4, 5])).toEqual({ total: 5, studied: 4, mastered: 2, mistakes: 2, readiness: 40 });
+    // Вклад: 1 + 0 + 2/3 + 1 = 2.67 из 5.
+    expect(areaStats(p, [1, 2, 3, 4, 5])).toEqual({ total: 5, studied: 4, mastered: 2, mistakes: 2, readiness: 53 });
   });
 });
 
